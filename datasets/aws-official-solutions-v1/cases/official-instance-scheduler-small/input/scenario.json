@@ -1,0 +1,12 @@
+{
+  "reference_size": "small deployment",
+  "active_scheduling_targets": 5,
+  "managed_resources": 20,
+  "active_schedules": 3,
+  "unique_instance_types": 2,
+  "scheduling_interval_minutes": 5,
+  "lambda_memory_mb": 512,
+  "lambda_average_runtime_seconds": 5,
+  "operational_metrics_enabled": true,
+  "estimate_scope": "primary services used to operate Instance Scheduler; exclude the runtime cost of managed EC2/RDS resources"
+}

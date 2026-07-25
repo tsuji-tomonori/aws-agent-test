@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "reference_kind": "aws-published-architecture-and-cost-table",
+  "publisher": "Amazon Web Services",
+  "title": "Build priority-based message processing with Amazon MQ and AWS App Runner",
+  "published_at": "2025-11-18",
+  "region": "us-east-1",
+  "article_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/",
+  "diagram": {
+    "article_image_url": "https://d2908q01vomqb2.cloudfront.net/fc074d501302eb2b93e2554793fcaf50b3bf7291/2025/11/13/image-1-2.jpeg",
+    "sample_repository_url": "https://github.com/aws-samples/sample-amazonmq-polling-mechanism",
+    "sample_repository_commit": "6cab865650b4080ade6aa39b8e66372074cc597f",
+    "sample_repository_license": "MIT-0",
+    "repository_diagram_path": "architecture_aws.png",
+    "repository_diagram_blob_sha": "136f2e0eca96410196f58864fb138581ec9888fd",
+    "repository_diagram_url": "https://github.com/aws-samples/sample-amazonmq-polling-mechanism/blob/6cab865650b4080ade6aa39b8e66372074cc597f/architecture_aws.png"
+  },
+  "published_cost_table_usd_per_month": {
+    "small": {
+      "messages_per_day": 1000,
+      "services": {
+        "Amazon DynamoDB": {
+          "minimum": 5,
+          "maximum": 10
+        },
+        "Amazon MQ": {
+          "minimum": 15,
+          "maximum": 15,
+          "instance": "t3.micro"
+        },
+        "AWS App Runner": {
+          "minimum": 20,
+          "maximum": 40
+        },
+        "Amazon API Gateway WebSocket": {
+          "minimum": 3,
+          "maximum": 5
+        },
+        "Amazon CloudWatch Logs": {
+          "minimum": 5,
+          "maximum": 10
+        },
+        "Data Transfer": {
+          "minimum": 5,
+          "maximum": 5
+        }
+      },
+      "total": {
+        "minimum": 53,
+        "maximum": 95
+      }
+    },
+    "medium": {
+      "messages_per_day": 10000,
+      "services": {
+        "Amazon DynamoDB": {
+          "minimum": 25,
+          "maximum": 50
+        },
+        "Amazon MQ": {
+          "minimum": 30,
+          "maximum": 30,
+          "instance": "m5.large"
+        },
+        "AWS App Runner": {
+          "minimum": 50,
+          "maximum": 150
+        },
+        "Amazon API Gateway WebSocket": {
+          "minimum": 10,
+          "maximum": 25
+        },
+        "Amazon CloudWatch Logs": {
+          "minimum": 10,
+          "maximum": 20
+        },
+        "Data Transfer": {
+          "minimum": 10,
+          "maximum": 20
+        }
+      },
+      "total": {
+        "minimum": 135,
+        "maximum": 295
+      }
+    },
+    "large": {
+      "messages_per_day": 100000,
+      "services": {
+        "Amazon DynamoDB": {
+          "minimum": 200,
+          "maximum": 400
+        },
+        "Amazon MQ": {
+          "minimum": 120,
+          "maximum": 120,
+          "instance": "m5.xlarge"
+        },
+        "AWS App Runner": {
+          "minimum": 400,
+          "maximum": 800
+        },
+        "Amazon API Gateway WebSocket": {
+          "minimum": 50,
+          "maximum": 100
+        },
+        "Amazon CloudWatch Logs": {
+          "minimum": 30,
+          "maximum": 50
+        },
+        "Data Transfer": {
+          "minimum": 50,
+          "maximum": 100
+        }
+      },
+      "total": {
+        "minimum": 850,
+        "maximum": 1570
+      }
+    }
+  },
+  "selected_case_tier": "medium",
+  "derived_mock_oracle": {
+    "rule": "midpoint of each published medium service range; fixed ranges remain fixed",
+    "service_points": {
+      "Amazon DynamoDB": 37.5,
+      "Amazon MQ": 30.0,
+      "AWS App Runner": 100.0,
+      "Amazon API Gateway WebSocket": 17.5,
+      "Amazon CloudWatch Logs": 15.0,
+      "Data Transfer": 15.0
+    },
+    "total": 215.0
+  },
+  "integrity_notes": [
+    "The public table is preserved verbatim as numeric ranges; no current-price substitution is made.",
+    "The small-tier service maxima sum to USD 85 while the published total maximum is USD 95. The fixture preserves both published values and records the discrepancy.",
+    "The medium-tier midpoint total is a deterministic mock value, not a price published by AWS."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/evaluation-result.schema.json",
+  "type": "object",
+  "required": ["case_id", "trial", "passed", "score", "critical_failures", "checks"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "trial": {"type": "integer", "minimum": 1},
+    "passed": {"type": "boolean"},
+    "score": {"type": "number", "minimum": 0, "maximum": 100},
+    "critical_failures": {"type": "array", "items": {"type": "string"}},
+    "checks": {"type": "array"}
+  }
+}

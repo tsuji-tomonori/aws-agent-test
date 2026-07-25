@@ -1,0 +1,466 @@
+{
+  "schema_version": "1.0",
+  "id": "official-landing-zone-accelerator-sandbox",
+  "title": "AWS official Landing Zone Accelerator sandbox reference scenario",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Use the AWS official architecture diagram, public installer CloudFormation template, and supplied sample-configuration dimensions to estimate one month in us-east-1 for a non-critical sandbox with no workloads.",
+  "inputs": [
+    "input/scenario.json"
+  ],
+  "public_assets": [
+    {
+      "id": "architecture-diagram",
+      "role": "architecture-diagram",
+      "url": "https://docs.aws.amazon.com/images/solutions/latest/landing-zone-accelerator-on-aws/images/lza-arch-diagram.png",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/architecture-overview.html",
+      "target": "architecture.png",
+      "media_type": "image/png",
+      "authentication": "none",
+      "required": true
+    },
+    {
+      "id": "cloudformation-template",
+      "role": "cloudformation-template",
+      "url": "https://s3.amazonaws.com/solutions-reference/landing-zone-accelerator-on-aws/latest/AWSAccelerator-InstallerStack.template",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/aws-cloudformation-template.html",
+      "target": "solution.template",
+      "media_type": "text/plain",
+      "authentication": "none",
+      "required": true
+    }
+  ],
+  "official_reference": {
+    "publisher": "Amazon Web Services",
+    "solution": "Landing Zone Accelerator on AWS",
+    "architecture_page_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/architecture-overview.html",
+    "cost_page_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html",
+    "template_page_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/aws-cloudformation-template.html",
+    "captured_at": "2026-07-25",
+    "oracle_kind": "aws-published-reference-estimate",
+    "credentials_required": false
+  },
+  "usage_profile": {
+    "configuration": "Landing Zone Accelerator sample configuration with AWS Control Tower",
+    "environment": "non-critical sandbox",
+    "region": "us-east-1",
+    "activity_or_workloads": "none",
+    "month_length": "one month",
+    "cloudtrail_management_events_million": 4.0,
+    "cloudtrail_paid_events_million": 4.7,
+    "cloudtrail_insights": false,
+    "config_items": 2000,
+    "config_rule_evaluations": 17000,
+    "kms_customer_managed_keys": 43,
+    "kms_symmetric_requests": 521288,
+    "kinesis_put_payload_units_million": 4.5,
+    "kinesis_shard_hours": 744,
+    "firehose_records": 33735,
+    "firehose_record_size_kb": 5,
+    "s3_standard_storage_gb": 7,
+    "s3_write_requests": 505000,
+    "s3_read_requests": 265000,
+    "transit_gateway_attachments": 2,
+    "transit_gateway_gb_per_attachment": 3,
+    "vpc_endpoints": 14,
+    "vpc_endpoint_availability_zones": 1,
+    "vpc_endpoint_gb_each": 3,
+    "cloudwatch_metrics": 12,
+    "cloudwatch_standard_logs_gb": 12,
+    "cloudwatch_delivered_logs_gb": 2,
+    "security_hub_accounts": 1,
+    "security_hub_checks": 30000,
+    "guardduty_management_events_million": 2.4,
+    "guardduty_s3_data_events_million": 2.4,
+    "route53_hosted_zones": 6,
+    "macie_s3_buckets": 16,
+    "secrets_manager_secrets": 2,
+    "codepipeline_pipelines": 2,
+    "codebuild_builds": 60,
+    "codebuild_minutes_per_build": 5
+  },
+  "pricing_basis": {
+    "purchase_option": "AWS published reference scenario and public on-demand rates",
+    "free_tier": true,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "Landing Zone Accelerator on AWS architecture",
+        "url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/architecture-overview.html"
+      },
+      {
+        "title": "Landing Zone Accelerator on AWS CloudFormation template",
+        "url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/aws-cloudformation-template.html"
+      },
+      {
+        "title": "Landing Zone Accelerator on AWS published cost example",
+        "url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 430.22,
+    "service_calculations": [
+      {
+        "service": "AWS CloudTrail",
+        "monthly_cost_usd": 99.0,
+        "formula": "4M management events and 4.7M paid events; Insights off.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 99.0,
+            "cost_usd": 99.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Config",
+        "monthly_cost_usd": 23.0,
+        "formula": "2,000 configuration items and 17,000 rule evaluations.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 23.0,
+            "cost_usd": 23.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS KMS",
+        "monthly_cost_usd": 44.56,
+        "formula": "43 customer managed keys and 521,288 symmetric requests.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 44.56,
+            "cost_usd": 44.56
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Kinesis",
+        "monthly_cost_usd": 11.22,
+        "formula": "4.5M PUT payload units and 744 shard hours.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 11.22,
+            "cost_usd": 11.22
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Data Firehose",
+        "monthly_cost_usd": 4.66,
+        "formula": "33,735 records at 5 KB in the AWS reference table.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 4.66,
+            "cost_usd": 4.66
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon S3",
+        "monthly_cost_usd": 2.79,
+        "formula": "7 GB storage, 505,000 write-class requests, and 265,000 read-class requests.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 2.79,
+            "cost_usd": 2.79
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon VPC",
+        "monthly_cost_usd": 175.35,
+        "formula": "Two Transit Gateway attachments and 14 endpoints in one Availability Zone.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 175.35,
+            "cost_usd": 175.35
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon CloudWatch",
+        "monthly_cost_usd": 15.71,
+        "formula": "12 metrics, 12 GB standard logs, and 2 GB delivered logs.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 15.71,
+            "cost_usd": 15.71
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Security Hub",
+        "monthly_cost_usd": 30.0,
+        "formula": "One account and 30,000 security checks.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 30.0,
+            "cost_usd": 30.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon GuardDuty",
+        "monthly_cost_usd": 11.52,
+        "formula": "2.4M management events and 2.4M S3 data events.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 11.52,
+            "cost_usd": 11.52
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Route 53",
+        "monthly_cost_usd": 3.0,
+        "formula": "Six hosted zones.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 3.0,
+            "cost_usd": 3.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Macie",
+        "monthly_cost_usd": 1.6,
+        "formula": "Sixteen S3 buckets.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 1.6,
+            "cost_usd": 1.6
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Secrets Manager",
+        "monthly_cost_usd": 0.81,
+        "formula": "Two secrets for 30 days.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.81,
+            "cost_usd": 0.81
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS CodePipeline",
+        "monthly_cost_usd": 1.0,
+        "formula": "Two pipelines each month.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 1.0,
+            "cost_usd": 1.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      },
+      {
+        "service": "AWS CodeBuild",
+        "monthly_cost_usd": 6.0,
+        "formula": "Sixty builds per month at five minutes each.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 6.0,
+            "cost_usd": 6.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+      }
+    ],
+    "review_notes": [
+      "Oracle is the AWS-published sample-configuration estimate for us-east-1 with AWS Control Tower.",
+      "The 15 published service rows sum to $430.22 after currency rounding.",
+      "AWS notes that additional services such as Lambda, DynamoDB, SNS, SQS, Step Functions, Systems Manager, and data transfer are Free Tier or below $0.01/month in this scenario.",
+      "The installer template is synthesized from AWS CDK; the architecture diagram covers resources created by the installer and core pipelines."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "AWS CloudTrail",
+      "AWS Config",
+      "AWS KMS",
+      "Amazon Kinesis",
+      "Amazon Data Firehose",
+      "Amazon S3",
+      "Amazon VPC",
+      "Amazon CloudWatch",
+      "AWS Security Hub",
+      "Amazon GuardDuty",
+      "Amazon Route 53",
+      "Amazon Macie",
+      "AWS Secrets Manager",
+      "AWS CodePipeline",
+      "AWS CodeBuild"
+    ],
+    "required_assumption_ids": [
+      "aws_official_reference_scenario",
+      "aws_control_tower_enabled",
+      "non_critical_sandbox",
+      "no_activity_or_workloads",
+      "sub_cent_and_free_tier_services_excluded",
+      "tax_and_discounts_excluded"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "AWS CloudTrail",
+        "minimum": 94.05,
+        "maximum": 103.95
+      },
+      {
+        "service": "AWS Config",
+        "minimum": 21.85,
+        "maximum": 24.15
+      },
+      {
+        "service": "AWS KMS",
+        "minimum": 42.332,
+        "maximum": 46.788
+      },
+      {
+        "service": "Amazon Kinesis",
+        "minimum": 10.659,
+        "maximum": 11.781
+      },
+      {
+        "service": "Amazon Data Firehose",
+        "minimum": 4.427,
+        "maximum": 4.893
+      },
+      {
+        "service": "Amazon S3",
+        "minimum": 2.6505,
+        "maximum": 2.9295
+      },
+      {
+        "service": "Amazon VPC",
+        "minimum": 166.5825,
+        "maximum": 184.1175
+      },
+      {
+        "service": "Amazon CloudWatch",
+        "minimum": 14.9245,
+        "maximum": 16.4955
+      },
+      {
+        "service": "AWS Security Hub",
+        "minimum": 28.5,
+        "maximum": 31.5
+      },
+      {
+        "service": "Amazon GuardDuty",
+        "minimum": 10.944,
+        "maximum": 12.096
+      },
+      {
+        "service": "Amazon Route 53",
+        "minimum": 2.85,
+        "maximum": 3.15
+      },
+      {
+        "service": "Amazon Macie",
+        "minimum": 1.52,
+        "maximum": 1.68
+      },
+      {
+        "service": "AWS Secrets Manager",
+        "minimum": 0.7695,
+        "maximum": 0.8505
+      },
+      {
+        "service": "AWS CodePipeline",
+        "minimum": 0.95,
+        "maximum": 1.05
+      },
+      {
+        "service": "AWS CodeBuild",
+        "minimum": 5.7,
+        "maximum": 6.3
+      }
+    ],
+    "total_range": {
+      "minimum": 408.709,
+      "maximum": 451.731
+    },
+    "required_source_urls": [
+      "https://docs.aws.amazon.com/solutions/latest/landing-zone-accelerator-on-aws/cost.html"
+    ]
+  },
+  "tags": [
+    "aws-official",
+    "reference-architecture",
+    "credential-free",
+    "landing-zone-accelerator",
+    "cloudformation",
+    "cdk-synthesized",
+    "multi-account",
+    "security"
+  ]
+}

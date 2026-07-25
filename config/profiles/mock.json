@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "name": "mock-good",
+  "kind": "command",
+  "command": [
+    "python", "-m", "aws_agent_eval.mock_agent",
+    "--case-file", "{case_file}",
+    "--output", "{output_file}",
+    "--mode", "good"
+  ],
+  "parser": "output-file-json",
+  "timeout_seconds": 30,
+  "environment": {},
+  "required_commands": ["python"],
+  "required_environment": []
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "name": "codex-public-pricing",
+  "kind": "command",
+  "command": [
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--json",
+    "--output-schema",
+    "{schema_file}",
+    "--output-last-message",
+    "{output_file}",
+    "-"
+  ],
+  "parser": "output-file-json",
+  "timeout_seconds": 900,
+  "environment": {
+    "AWS_EC2_METADATA_DISABLED": "true"
+  },
+  "required_commands": [
+    "codex"
+  ],
+  "required_environment": []
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "name": "claude-code-aws-pricing-mcp",
+  "kind": "command",
+  "command": [
+    "claude",
+    "-p",
+    "--output-format",
+    "json",
+    "--max-turns",
+    "24"
+  ],
+  "parser": "claude-json",
+  "timeout_seconds": 900,
+  "environment": {
+    "FASTMCP_LOG_LEVEL": "ERROR",
+    "AWS_PRICING_MCP_OUTPUT_DIR": "{workspace}"
+  },
+  "required_commands": [
+    "claude",
+    "uvx"
+  ],
+  "required_environment": [
+    "AWS_PROFILE",
+    "AWS_REGION"
+  ]
+}

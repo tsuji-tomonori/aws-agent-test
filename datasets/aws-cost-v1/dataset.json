@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "id": "aws-cost-v1",
+  "version": "1.1.0",
+  "description": "Frozen, reviewable AWS monthly-cost cases for CloudFormation, CDK, and an AWS-published architecture reference fixture.",
+  "cases": [
+    "cases/cfn-serverless-api/case.json",
+    "cases/cfn-static-site/case.json",
+    "cases/cdk-fargate-alb/case.json",
+    "cases/cfn-missing-usage/case.json",
+    "cases/aws-official-priority-messaging-medium/case.json"
+  ]
+}

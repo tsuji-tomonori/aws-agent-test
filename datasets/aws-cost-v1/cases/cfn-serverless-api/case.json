@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "id": "cfn-serverless-api",
+  "title": "CloudFormation serverless API",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Analyze the template and estimate its monthly AWS cost from the supplied usage profile.",
+  "inputs": [
+    "input/template.yaml"
+  ],
+  "usage_profile": {
+    "month_hours": 730,
+    "api_requests": 10000000,
+    "lambda_requests": 10000000,
+    "lambda_memory_mb": 512,
+    "lambda_average_duration_ms": 200,
+    "dynamodb_write_request_units": 8000000,
+    "dynamodb_read_request_units": 20000000
+  },
+  "pricing_basis": {
+    "purchase_option": "public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "AWS Lambda Pricing",
+        "url": "https://aws.amazon.com/lambda/pricing/"
+      },
+      {
+        "title": "Amazon API Gateway Pricing",
+        "url": "https://aws.amazon.com/api-gateway/pricing/"
+      },
+      {
+        "title": "Amazon DynamoDB On-Demand Pricing",
+        "url": "https://aws.amazon.com/dynamodb/pricing/on-demand/"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 36.1667,
+    "service_calculations": [
+      {
+        "service": "AWS Lambda",
+        "monthly_cost_usd": 18.6667,
+        "formula": "10M requests × $0.20/M + (10M × 0.2s × 0.5GB) × $0.0000166667/GB-s",
+        "components": [
+          {
+            "name": "requests",
+            "quantity": 10,
+            "unit": "million requests",
+            "unit_price_usd": 0.2,
+            "cost_usd": 2.0
+          },
+          {
+            "name": "compute",
+            "quantity": 1000000,
+            "unit": "GB-second",
+            "unit_price_usd": 1.66667e-05,
+            "cost_usd": 16.6667
+          }
+        ],
+        "source_url": "https://aws.amazon.com/lambda/pricing/"
+      },
+      {
+        "service": "Amazon API Gateway",
+        "monthly_cost_usd": 10.0,
+        "formula": "10M HTTP API requests × $1.00/M",
+        "components": [
+          {
+            "name": "HTTP API requests",
+            "quantity": 10,
+            "unit": "million requests",
+            "unit_price_usd": 1.0,
+            "cost_usd": 10.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/api-gateway/pricing/"
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "monthly_cost_usd": 7.5,
+        "formula": "8M write request units × $0.625/M + 20M read request units × $0.125/M",
+        "components": [
+          {
+            "name": "write request units",
+            "quantity": 8,
+            "unit": "million WRU",
+            "unit_price_usd": 0.625,
+            "cost_usd": 5.0
+          },
+          {
+            "name": "read request units",
+            "quantity": 20,
+            "unit": "million RRU",
+            "unit_price_usd": 0.125,
+            "cost_usd": 2.5
+          }
+        ],
+        "source_url": "https://aws.amazon.com/dynamodb/pricing/on-demand/"
+      }
+    ],
+    "review_notes": [
+      "Free Tier, Savings Plans, account discounts, tax, and CloudWatch Logs are excluded.",
+      "Tolerance is approximately ±1% per service to absorb display rounding, not SKU changes."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "AWS Lambda",
+      "Amazon API Gateway",
+      "Amazon DynamoDB"
+    ],
+    "required_assumption_ids": [
+      "free_tier_excluded",
+      "discounts_excluded",
+      "cloudwatch_logs_excluded"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "AWS Lambda",
+        "minimum": 18.48,
+        "maximum": 18.86
+      },
+      {
+        "service": "Amazon API Gateway",
+        "minimum": 9.9,
+        "maximum": 10.1
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "minimum": 7.42,
+        "maximum": 7.58
+      }
+    ],
+    "total_range": {
+      "minimum": 35.8,
+      "maximum": 36.54
+    },
+    "required_source_urls": [
+      "https://aws.amazon.com/lambda/pricing/",
+      "https://aws.amazon.com/api-gateway/pricing/",
+      "https://aws.amazon.com/dynamodb/pricing/on-demand/"
+    ]
+  },
+  "tags": [
+    "cloudformation",
+    "serverless",
+    "request-pricing",
+    "duration-pricing"
+  ]
+}

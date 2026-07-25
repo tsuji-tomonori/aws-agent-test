@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "id": "cfn-missing-usage",
+  "title": "CloudFormation Lambda with missing usage profile",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Determine whether a defensible monthly estimate can be produced. Ask for every required missing input instead of guessing.",
+  "inputs": [
+    "input/template.yaml"
+  ],
+  "usage_profile": {},
+  "pricing_basis": {
+    "purchase_option": "public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "AWS Lambda Pricing",
+        "url": "https://aws.amazon.com/lambda/pricing/"
+      },
+      {
+        "title": "Amazon API Gateway Pricing",
+        "url": "https://aws.amazon.com/api-gateway/pricing/"
+      },
+      {
+        "title": "Amazon DynamoDB On-Demand Pricing",
+        "url": "https://aws.amazon.com/dynamodb/pricing/on-demand/"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": null,
+    "service_calculations": [],
+    "review_notes": [
+      "No oracle price is computed because request counts and Lambda duration are absent.",
+      "The correct behavior is explicit clarification, not a default traffic assumption."
+    ]
+  },
+  "expected": {
+    "status": "needs_clarification",
+    "required_services": [],
+    "required_assumption_ids": [],
+    "required_missing_input_ids": [
+      "monthly_api_requests",
+      "monthly_lambda_requests",
+      "lambda_average_duration_ms",
+      "monthly_dynamodb_write_request_units",
+      "monthly_dynamodb_read_request_units"
+    ],
+    "service_ranges": [],
+    "total_range": null,
+    "required_source_urls": [
+      "https://aws.amazon.com/lambda/pricing/",
+      "https://aws.amazon.com/api-gateway/pricing/",
+      "https://aws.amazon.com/dynamodb/pricing/on-demand/"
+    ]
+  },
+  "tags": [
+    "cloudformation",
+    "clarification",
+    "abstention",
+    "missing-input"
+  ]
+}

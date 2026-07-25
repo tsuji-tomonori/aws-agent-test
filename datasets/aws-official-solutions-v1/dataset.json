@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "id": "aws-official-solutions-v1",
+  "version": "1.0.0",
+  "description": "Credential-free benchmark cases using AWS official reference architecture diagrams and AWS-published monthly cost examples as hidden oracles.",
+  "cases": [
+    "cases/official-instance-scheduler-small/case.json",
+    "cases/official-cloud-migration-factory-default/case.json",
+    "cases/official-landing-zone-accelerator-sandbox/case.json"
+  ]
+}

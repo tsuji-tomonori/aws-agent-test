@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0",
+  "id": "cfn-static-site",
+  "title": "CloudFormation S3 and CloudFront static site",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Estimate monthly storage, request, and delivery cost for the static site without applying Free Tier.",
+  "inputs": [
+    "input/template.yaml"
+  ],
+  "usage_profile": {
+    "s3_standard_storage_gb_month": 100,
+    "s3_put_requests": 100000,
+    "s3_get_requests": 5000000,
+    "cloudfront_data_transfer_out_gb_us_canada_mexico": 2048,
+    "cloudfront_https_requests": 20000000
+  },
+  "pricing_basis": {
+    "purchase_option": "public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "Amazon S3 Pricing",
+        "url": "https://aws.amazon.com/s3/pricing/"
+      },
+      {
+        "title": "Amazon CloudFront Pricing",
+        "url": "https://aws.amazon.com/cloudfront/pricing/"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 198.88,
+    "service_calculations": [
+      {
+        "service": "Amazon S3",
+        "monthly_cost_usd": 4.8,
+        "formula": "100GB × $0.023/GB-month + 100k PUT × $0.005/1k + 5M GET × $0.0004/1k",
+        "components": [
+          {
+            "name": "Standard storage",
+            "quantity": 100,
+            "unit": "GB-month",
+            "unit_price_usd": 0.023,
+            "cost_usd": 2.3
+          },
+          {
+            "name": "PUT requests",
+            "quantity": 100,
+            "unit": "thousand requests",
+            "unit_price_usd": 0.005,
+            "cost_usd": 0.5
+          },
+          {
+            "name": "GET requests",
+            "quantity": 5000,
+            "unit": "thousand requests",
+            "unit_price_usd": 0.0004,
+            "cost_usd": 2.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/s3/pricing/"
+      },
+      {
+        "service": "Amazon CloudFront",
+        "monthly_cost_usd": 194.08,
+        "formula": "2048GB × $0.085/GB + 20M HTTPS requests × $0.010/10k",
+        "components": [
+          {
+            "name": "US/Canada/Mexico transfer out",
+            "quantity": 2048,
+            "unit": "GB",
+            "unit_price_usd": 0.085,
+            "cost_usd": 174.08
+          },
+          {
+            "name": "HTTPS requests",
+            "quantity": 2000,
+            "unit": "ten-thousand requests",
+            "unit_price_usd": 0.01,
+            "cost_usd": 20.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/cloudfront/pricing/"
+      }
+    ],
+    "review_notes": [
+      "CloudFront Free Tier is intentionally excluded.",
+      "No origin egress charge is added for S3-to-CloudFront transfer in this frozen case."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "Amazon S3",
+      "Amazon CloudFront"
+    ],
+    "required_assumption_ids": [
+      "free_tier_excluded",
+      "discounts_excluded",
+      "cloudfront_geo_us_canada_mexico"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "Amazon S3",
+        "minimum": 4.7,
+        "maximum": 4.9
+      },
+      {
+        "service": "Amazon CloudFront",
+        "minimum": 192.13,
+        "maximum": 196.03
+      }
+    ],
+    "total_range": {
+      "minimum": 196.83,
+      "maximum": 200.93
+    },
+    "required_source_urls": [
+      "https://aws.amazon.com/s3/pricing/",
+      "https://aws.amazon.com/cloudfront/pricing/"
+    ]
+  },
+  "tags": [
+    "cloudformation",
+    "storage",
+    "cdn",
+    "tiered-pricing"
+  ]
+}

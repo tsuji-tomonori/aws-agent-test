@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0",
+  "id": "official-instance-scheduler-small",
+  "title": "AWS official Instance Scheduler small reference deployment",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Use the AWS official architecture diagram, public CloudFormation template, and supplied small-deployment usage profile to independently estimate the monthly operating cost of the solution. Do not include costs of the EC2/RDS resources being scheduled.",
+  "inputs": [
+    "input/scenario.json"
+  ],
+  "public_assets": [
+    {
+      "id": "architecture-diagram",
+      "role": "architecture-diagram",
+      "url": "https://docs.aws.amazon.com/images/solutions/latest/instance-scheduler-on-aws/images/InstanceScheduler-architecture.png",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/architecture.html",
+      "target": "architecture.png",
+      "media_type": "image/png",
+      "authentication": "none",
+      "required": true
+    },
+    {
+      "id": "cloudformation-template",
+      "role": "cloudformation-template",
+      "url": "https://s3.amazonaws.com/solutions-reference/instance-scheduler-on-aws/latest/instance-scheduler-on-aws.template",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/aws-cloudformation-templates.html",
+      "target": "solution.template",
+      "media_type": "text/plain",
+      "authentication": "none",
+      "required": true
+    }
+  ],
+  "official_reference": {
+    "publisher": "Amazon Web Services",
+    "solution": "Instance Scheduler on AWS",
+    "architecture_page_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/architecture.html",
+    "cost_page_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html",
+    "template_page_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/aws-cloudformation-templates.html",
+    "captured_at": "2026-07-25",
+    "oracle_kind": "aws-published-reference-estimate",
+    "credentials_required": false
+  },
+  "usage_profile": {
+    "reference_size": "small deployment",
+    "active_scheduling_targets": 5,
+    "managed_resources": 20,
+    "active_schedules": 3,
+    "unique_instance_types": 2,
+    "scheduling_interval_minutes": 5,
+    "lambda_memory_mb": 512,
+    "lambda_average_runtime_seconds": 5,
+    "operational_metrics_enabled": true,
+    "estimate_scope": "primary services used to operate Instance Scheduler; exclude the runtime cost of managed EC2/RDS resources"
+  },
+  "pricing_basis": {
+    "purchase_option": "AWS published reference scenario and public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "Instance Scheduler on AWS architecture",
+        "url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/architecture.html"
+      },
+      {
+        "title": "Instance Scheduler on AWS CloudFormation template",
+        "url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/aws-cloudformation-templates.html"
+      },
+      {
+        "title": "Instance Scheduler on AWS published cost example",
+        "url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 9.15,
+    "service_calculations": [
+      {
+        "service": "AWS Lambda",
+        "monthly_cost_usd": 2.0,
+        "formula": "AWS reference: 5 active targets, 5-minute interval, 512 MB, 5-second average runtime.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 2.0,
+            "cost_usd": 2.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+      },
+      {
+        "service": "AWS KMS",
+        "monthly_cost_usd": 1.5,
+        "formula": "AWS published monthly KMS estimate for the small reference deployment.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 1.5,
+            "cost_usd": 1.5
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon CloudWatch",
+        "monthly_cost_usd": 5.6,
+        "formula": "AWS published rows: CloudWatch Logs ~$0.30 plus CloudWatch Metrics ~$5.30.",
+        "components": [
+          {
+            "name": "CloudWatch Logs published row",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.3,
+            "cost_usd": 0.3
+          },
+          {
+            "name": "CloudWatch Metrics published row",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 5.3,
+            "cost_usd": 5.3
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "monthly_cost_usd": 0.05,
+        "formula": "AWS published monthly DynamoDB estimate for the small reference deployment.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.05,
+            "cost_usd": 0.05
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+      }
+    ],
+    "review_notes": [
+      "Oracle is the AWS-published small-deployment reference estimate, not a bill from an AWS account.",
+      "AWS labels these values as rough estimates for the primary services used by the solution.",
+      "The public architecture diagram and template require no AWS authentication; the published cost page is held back from the agent workspace as oracle evidence.",
+      "CloudWatch Logs and CloudWatch Metrics remain separate published components but are evaluated as one Amazon CloudWatch service."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "AWS Lambda",
+      "AWS KMS",
+      "Amazon CloudWatch",
+      "Amazon DynamoDB"
+    ],
+    "required_assumption_ids": [
+      "aws_official_reference_scenario",
+      "managed_resource_runtime_excluded",
+      "public_prices_only",
+      "tax_and_discounts_excluded"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "AWS Lambda",
+        "minimum": 1.9,
+        "maximum": 2.1
+      },
+      {
+        "service": "AWS KMS",
+        "minimum": 1.425,
+        "maximum": 1.575
+      },
+      {
+        "service": "Amazon CloudWatch",
+        "minimum": 5.32,
+        "maximum": 5.88
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "minimum": 0.04,
+        "maximum": 0.06
+      }
+    ],
+    "total_range": {
+      "minimum": 8.6925,
+      "maximum": 9.6075
+    },
+    "required_source_urls": [
+      "https://docs.aws.amazon.com/solutions/latest/instance-scheduler-on-aws/cost.html"
+    ]
+  },
+  "tags": [
+    "aws-official",
+    "reference-architecture",
+    "credential-free",
+    "instance-scheduler",
+    "cloudformation",
+    "cdk-generated",
+    "observability"
+  ]
+}

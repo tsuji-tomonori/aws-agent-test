@@ -1,0 +1,8 @@
+{
+  "name": "not-deployed-fargate-evaluation",
+  "private": true,
+  "dependencies": {
+    "aws-cdk-lib": "^2.200.0",
+    "constructs": "^10.4.0"
+  }
+}
