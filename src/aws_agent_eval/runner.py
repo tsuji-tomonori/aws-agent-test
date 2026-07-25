@@ -15,7 +15,14 @@ from .prompt import render_agent_prompt
 from .schema import validate_object
 from .statistics import summarise_trials
 from .types import Case, Dataset, JsonObject
-from .utils import canonical_digest, dump_json, extract_json_object, load_json, safe_relative, utc_now
+from .utils import (
+    canonical_digest,
+    dump_json,
+    extract_json_object,
+    load_json,
+    safe_relative,
+    utc_now,
+)
 
 
 def load_profile(profile_path: Path, schema_dir: Path | None = None) -> JsonObject:
@@ -39,10 +46,14 @@ def run_experiment(
         raise ValueError("repetitions must be >= 1")
     run_dir = run_dir.resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
-    template = prompt_template or Path(__file__).resolve().parents[2] / "prompts/agent-cost-estimation.md"
+    template = (
+        prompt_template or Path(__file__).resolve().parents[2] / "prompts/agent-cost-estimation.md"
+    )
     schema_path = default_schema_dir() / "agent-output.schema.json"
 
-    cases = [case for case in dataset.cases if not selected_case_ids or case.id in selected_case_ids]
+    cases = [
+        case for case in dataset.cases if not selected_case_ids or case.id in selected_case_ids
+    ]
     if selected_case_ids:
         found = {case.id for case in cases}
         unknown = selected_case_ids - found
@@ -134,10 +145,7 @@ def _run_trial(
     command = [_interpolate(str(token), variables) for token in profile["command"]]
     environment = os.environ.copy()
     environment.update(
-        {
-            key: _interpolate(str(value), variables)
-            for key, value in profile["environment"].items()
-        }
+        {key: _interpolate(str(value), variables) for key, value in profile["environment"].items()}
     )
     environment["AWS_AGENT_EVAL_CASE_ID"] = case.id
     environment["AWS_AGENT_EVAL_TRIAL"] = str(trial)

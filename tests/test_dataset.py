@@ -3,7 +3,6 @@ from pathlib import Path
 
 from aws_agent_eval.dataset import load_dataset
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -38,9 +37,7 @@ def test_official_reference_preserves_aws_cost_table_and_provenance() -> None:
     }
     assert table["medium"]["total"] == {"minimum": 135, "maximum": 295}
     assert table["large"]["total"] == {"minimum": 850, "maximum": 1570}
-    small_max_sum = sum(
-        service["maximum"] for service in table["small"]["services"].values()
-    )
+    small_max_sum = sum(service["maximum"] for service in table["small"]["services"].values())
     assert small_max_sum == 85
     assert table["small"]["total"]["maximum"] == 95
 

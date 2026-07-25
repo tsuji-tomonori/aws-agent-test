@@ -4,7 +4,6 @@ from aws_agent_eval.dataset import load_dataset
 from aws_agent_eval.evaluator import evaluate_response
 from aws_agent_eval.mock_agent import build_response
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

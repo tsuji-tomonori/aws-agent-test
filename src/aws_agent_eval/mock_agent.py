@@ -31,7 +31,13 @@ def build_response(case: dict[str, Any], *, mode: str, trial: int) -> dict[str, 
             ],
             "confidence": 0.99,
             "summary": "Required usage inputs are missing; no cost was fabricated.",
-            "agent_metrics": {"model": "mock", "input_tokens": 0, "output_tokens": 0, "model_cost_usd": 0.0, "tool_calls": 0},
+            "agent_metrics": {
+                "model": "mock",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "model_cost_usd": 0.0,
+                "tool_calls": 0,
+            },
         }
     else:
         estimates = []
@@ -72,14 +78,24 @@ def build_response(case: dict[str, Any], *, mode: str, trial: int) -> dict[str, 
             "monthly_total_usd": total,
             "service_estimates": estimates,
             "assumptions": [
-                {"id": item, "statement": f"Mock records required assumption: {item}.", "impact": "medium"}
+                {
+                    "id": item,
+                    "statement": f"Mock records required assumption: {item}.",
+                    "impact": "medium",
+                }
                 for item in expected["required_assumption_ids"]
             ],
             "excluded_costs": ["Tax, support, and account-specific discounts are excluded."],
             "missing_inputs": [],
             "confidence": 0.95,
             "summary": "Deterministic mock response for harness verification.",
-            "agent_metrics": {"model": "mock", "input_tokens": 0, "output_tokens": 0, "model_cost_usd": 0.0, "tool_calls": 0},
+            "agent_metrics": {
+                "model": "mock",
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "model_cost_usd": 0.0,
+                "tool_calls": 0,
+            },
         }
 
     if mode == "flaky" and trial % 3 == 0:

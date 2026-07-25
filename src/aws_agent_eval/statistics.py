@@ -3,12 +3,13 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from statistics import mean
-from typing import Any
 
 from .types import JsonObject
 
 
-def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) -> tuple[float, float]:
+def wilson_interval(
+    successes: int, total: int, z: float = 1.959963984540054
+) -> tuple[float, float]:
     if total <= 0:
         return (0.0, 0.0)
     proportion = successes / total
@@ -43,7 +44,9 @@ def summarise_trials(trials: list[JsonObject], repetitions: int) -> JsonObject:
         response = item.get("response")
         if isinstance(response, dict):
             metrics = response.get("agent_metrics")
-            if isinstance(metrics, dict) and isinstance(metrics.get("model_cost_usd"), (int, float)):
+            if isinstance(metrics, dict) and isinstance(
+                metrics.get("model_cost_usd"), (int, float)
+            ):
                 model_costs.append(float(metrics["model_cost_usd"]))
 
     any_success = sum(any(values) for values in by_case.values())

@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .types import JsonObject
 from .utils import dump_json, load_json
 
 

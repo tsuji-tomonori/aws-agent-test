@@ -5,7 +5,6 @@ import random
 from collections import defaultdict
 from pathlib import Path
 from statistics import median
-from typing import Any
 
 from .dataset import default_schema_dir
 from .schema import validate_object
@@ -59,7 +58,12 @@ def aggregate_judgments(run_dir: Path, input_path: Path) -> Path:
             grouped[str(value["judge_item_id"])].append(value)
 
     aggregates: list[JsonObject] = []
-    dimensions = ["assumption_clarity", "uncertainty_handling", "exclusion_clarity", "actionability"]
+    dimensions = [
+        "assumption_clarity",
+        "uncertainty_handling",
+        "exclusion_clarity",
+        "actionability",
+    ]
     for item_id, values in sorted(grouped.items()):
         scores = {
             dimension: median(float(value["scores"][dimension]) for value in values)

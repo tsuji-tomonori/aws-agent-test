@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from urllib.parse import quote
 
-
 _BASE_URL = "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws"
 _SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
 

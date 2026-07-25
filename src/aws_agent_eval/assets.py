@@ -57,11 +57,7 @@ def validate_case_public_assets(case_id: str, case_data: JsonObject) -> None:
     for field in ("architecture_page_url", "cost_page_url", "template_page_url"):
         _validate_public_https_url(case_id, str(reference[field]))
 
-    roles = {
-        str(item.get("role"))
-        for item in assets
-        if isinstance(item, dict)
-    }
+    roles = {str(item.get("role")) for item in assets if isinstance(item, dict)}
     if "architecture-diagram" not in roles:
         raise ValueError(f"{case_id}: official reference case requires an architecture diagram")
     if "cloudformation-template" not in roles:
@@ -81,9 +77,7 @@ def validate_case_public_assets(case_id: str, case_data: JsonObject) -> None:
     assert isinstance(snapshot, dict)
     sources = snapshot["sources"]
     assert isinstance(sources, list)
-    source_urls = {
-        str(item["url"]) for item in sources if isinstance(item, dict) and "url" in item
-    }
+    source_urls = {str(item["url"]) for item in sources if isinstance(item, dict) and "url" in item}
     if cost_page_url not in source_urls:
         raise ValueError(f"{case_id}: cost_page_url must be included in price_snapshot.sources")
 
@@ -228,9 +222,7 @@ def _fetch_asset(
             last_modified = response.headers.get("Last-Modified")
             declared_length = response.headers.get("Content-Length")
             if declared_length is not None and int(declared_length) > max_asset_bytes:
-                raise ValueError(
-                    f"Public asset exceeds {max_asset_bytes} bytes: {asset['url']}"
-                )
+                raise ValueError(f"Public asset exceeds {max_asset_bytes} bytes: {asset['url']}")
             with temporary.open("wb") as stream:
                 while True:
                     chunk = response.read(1024 * 1024)
@@ -294,7 +286,10 @@ def _validate_public_https_url(case_id: str, value: str) -> None:
 def _media_type_compatible(expected: str, actual: str) -> bool:
     if expected == actual:
         return True
-    if expected.startswith("text/") and actual in {"application/octet-stream", "binary/octet-stream"}:
+    if expected.startswith("text/") and actual in {
+        "application/octet-stream",
+        "binary/octet-stream",
+    }:
         return True
     return False
 

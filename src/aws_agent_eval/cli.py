@@ -51,7 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--run-dir", type=Path, required=True)
     aggregate.add_argument("--input", type=Path, required=True)
 
-    prerequisites = subparsers.add_parser("check-prerequisites", help="Check live profile prerequisites")
+    prerequisites = subparsers.add_parser(
+        "check-prerequisites", help="Check live profile prerequisites"
+    )
     prerequisites.add_argument("--profile", type=Path, required=True)
 
     price_url = subparsers.add_parser(
@@ -104,11 +106,7 @@ def main(argv: list[str] | None = None) -> None:
                 raise SystemExit(2)
         elif args.command == "public-price-url":
             if args.region_index:
-                print(
-                    build_public_region_index_url(
-                        args.service_code, version=args.version
-                    )
-                )
+                print(build_public_region_index_url(args.service_code, version=args.version))
             else:
                 print(
                     build_public_offer_url(

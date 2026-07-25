@@ -3,7 +3,6 @@ from pathlib import Path
 from aws_agent_eval.dataset import load_dataset
 from aws_agent_eval.prompt import render_agent_prompt
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_DIR = ROOT / "datasets/aws-official-solutions-v1"
 
@@ -19,23 +18,21 @@ def test_official_solutions_dataset_contains_aws_published_examples() -> None:
         "official-cloud-migration-factory-default",
         "official-landing-zone-accelerator-sandbox",
     }
-    assert cases["official-instance-scheduler-small"].data["oracle"][
-        "monthly_total_usd"
-    ] == 9.15
-    assert cases["official-cloud-migration-factory-default"].data["oracle"][
-        "monthly_total_usd"
-    ] == 14.31
-    assert cases["official-landing-zone-accelerator-sandbox"].data["oracle"][
-        "monthly_total_usd"
-    ] == 430.22
+    assert cases["official-instance-scheduler-small"].data["oracle"]["monthly_total_usd"] == 9.15
+    assert (
+        cases["official-cloud-migration-factory-default"].data["oracle"]["monthly_total_usd"]
+        == 14.31
+    )
+    assert (
+        cases["official-landing-zone-accelerator-sandbox"].data["oracle"]["monthly_total_usd"]
+        == 430.22
+    )
 
     for case in dataset.cases:
         reference = case.data["official_reference"]
         assert reference["publisher"] == "Amazon Web Services"
         assert reference["credentials_required"] is False
-        assert case.data["expected"]["required_source_urls"] == [
-            reference["cost_page_url"]
-        ]
+        assert case.data["expected"]["required_source_urls"] == [reference["cost_page_url"]]
         assets = case.data["public_assets"]
         assert {item["role"] for item in assets} >= {
             "architecture-diagram",
@@ -46,9 +43,7 @@ def test_official_solutions_dataset_contains_aws_published_examples() -> None:
 
 def test_official_prompt_exposes_assets_but_not_hidden_oracle() -> None:
     dataset = load_dataset(DATASET_DIR)
-    case = next(
-        item for item in dataset.cases if item.id == "official-instance-scheduler-small"
-    )
+    case = next(item for item in dataset.cases if item.id == "official-instance-scheduler-small")
     rendered = render_agent_prompt(
         case,
         ROOT / "prompts/agent-cost-estimation.md",

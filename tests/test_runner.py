@@ -3,7 +3,6 @@ from pathlib import Path
 from aws_agent_eval.dataset import load_dataset
 from aws_agent_eval.runner import load_profile, run_experiment
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -17,10 +16,7 @@ def test_mock_experiment_is_reproducibly_green(tmp_path: Path) -> None:
     workspace = tmp_path / "run/workspaces/cfn-serverless-api/trial-01"
     assert not (workspace / "case.json").exists()
     assert (workspace / "input/template.yaml").exists()
-    official_workspace = (
-        tmp_path
-        / "run/workspaces/aws-official-priority-messaging-medium/trial-01"
-    )
+    official_workspace = tmp_path / "run/workspaces/aws-official-priority-messaging-medium/trial-01"
     assert (official_workspace / "input/official-reference.md").exists()
     assert not (official_workspace / "provenance/official-reference.json").exists()
 

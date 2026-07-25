@@ -2,7 +2,6 @@ from pathlib import Path
 
 from aws_agent_eval.runner import load_profile
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

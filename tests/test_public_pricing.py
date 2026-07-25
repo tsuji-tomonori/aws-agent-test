@@ -8,8 +8,7 @@ from aws_agent_eval.public_pricing import (
 
 def test_builds_credential_free_public_offer_urls() -> None:
     assert build_public_offer_url("AmazonRDS") == (
-        "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/"
-        "AmazonRDS/current/index.json"
+        "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/index.json"
     )
     assert build_public_offer_url("AmazonRDS", region_code="us-east-1") == (
         "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/"
