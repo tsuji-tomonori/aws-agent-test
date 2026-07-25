@@ -1,8 +1,2 @@
-mypy status: 1
-src/aws_agent_eval/dataset.py:44: error: Unused "type: ignore" comment  [unused-ignore]
-src/aws_agent_eval/dataset.py:44: error: No overload variant of "list" matches argument type "object"  [call-overload]
-src/aws_agent_eval/dataset.py:44: note: Error code "call-overload" not covered by "type: ignore" comment
-src/aws_agent_eval/dataset.py:44: note: Possible overload variants:
-src/aws_agent_eval/dataset.py:44: note:     def [_T] list() -> list[_T]
-src/aws_agent_eval/dataset.py:44: note:     def [_T] list(Iterable[_T], /) -> list[_T]
-Found 2 errors in 1 file (checked 17 source files)
+mypy status: 0
+Success: no issues found in 17 source files
