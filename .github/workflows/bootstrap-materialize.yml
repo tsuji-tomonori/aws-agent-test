@@ -39,10 +39,11 @@ jobs:
           tar -tzf /tmp/project.tar.gz >/dev/null
           tar -xzf /tmp/project.tar.gz
           rm -rf .bootstrap bootstrap-diagnostic.txt
+          rm -f .github/workflows/ci.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
-          git commit -m "feat: add credential-free AWS agent evaluation harness and official AWS fixtures"
+          git commit --quiet -m "feat: add credential-free AWS agent evaluation harness and official AWS fixtures"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH}" \
             push origin "HEAD:${BRANCH}"
