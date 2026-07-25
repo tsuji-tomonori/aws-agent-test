@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/judge-output.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["judge_item_id", "repeat", "scores", "semantic_pass", "critical_concern", "rationale"],
+  "properties": {
+    "judge_item_id": {"type": "string", "minLength": 1},
+    "repeat": {"type": "integer", "minimum": 1},
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assumption_clarity", "uncertainty_handling", "exclusion_clarity", "actionability"],
+      "properties": {
+        "assumption_clarity": {"type": "integer", "minimum": 1, "maximum": 5},
+        "uncertainty_handling": {"type": "integer", "minimum": 1, "maximum": 5},
+        "exclusion_clarity": {"type": "integer", "minimum": 1, "maximum": 5},
+        "actionability": {"type": "integer", "minimum": 1, "maximum": 5}
+      }
+    },
+    "semantic_pass": {"type": "boolean"},
+    "critical_concern": {"type": ["string", "null"]},
+    "rationale": {"type": "string", "minLength": 1}
+  }
+}

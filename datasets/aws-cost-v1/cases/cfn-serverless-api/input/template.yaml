@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Minimal serverless API for cost-estimation evaluation
+Resources:
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: evaluation-http-api
+      ProtocolType: HTTP
+  Handler:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: evaluation-handler
+      Runtime: python3.13
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 10
+      Role: arn:aws:iam::123456789012:role/not-deployed-evaluation-role
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"statusCode": 200, "body": "ok"}
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: evaluation-items
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH

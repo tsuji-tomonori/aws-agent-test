@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "name": "claude-code-public-pricing",
+  "kind": "command",
+  "command": [
+    "claude",
+    "-p",
+    "--output-format",
+    "json",
+    "--max-turns",
+    "24"
+  ],
+  "parser": "claude-json",
+  "timeout_seconds": 900,
+  "environment": {
+    "AWS_EC2_METADATA_DISABLED": "true"
+  },
+  "required_commands": [
+    "claude"
+  ],
+  "required_environment": []
+}

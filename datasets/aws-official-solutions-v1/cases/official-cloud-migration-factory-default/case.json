@@ -1,0 +1,377 @@
+{
+  "schema_version": "1.0",
+  "id": "official-cloud-migration-factory-default",
+  "title": "AWS official Cloud Migration Factory default reference scenario",
+  "iac_type": "cloudformation",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Use the AWS official architecture diagram, public CloudFormation template, and supplied 200-server monthly scenario to estimate the solution cost. Include the migration tracker and WAF assumptions. Exclude the separately recommended migration automation server EC2/EBS cost.",
+  "inputs": [
+    "input/scenario.json"
+  ],
+  "public_assets": [
+    {
+      "id": "architecture-diagram",
+      "role": "architecture-diagram",
+      "url": "https://docs.aws.amazon.com/images/solutions/latest/cloud-migration-factory-on-aws/images/Cloud-migration-factory-arch-diagram.png",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/architecture-overview.html",
+      "target": "architecture.png",
+      "media_type": "image/png",
+      "authentication": "none",
+      "required": true
+    },
+    {
+      "id": "cloudformation-template",
+      "role": "cloudformation-template",
+      "url": "https://solutions-reference.s3.amazonaws.com/cloud-migration-factory-on-aws/latest/aws-cloud-migration-factory-solution.template",
+      "source_page_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/aws-cloudformation-templates.html",
+      "target": "solution.template",
+      "media_type": "text/plain",
+      "authentication": "none",
+      "required": true
+    }
+  ],
+  "official_reference": {
+    "publisher": "Amazon Web Services",
+    "solution": "Cloud Migration Factory on AWS",
+    "architecture_page_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/architecture-overview.html",
+    "cost_page_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html",
+    "template_page_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/aws-cloudformation-templates.html",
+    "captured_at": "2026-07-25",
+    "oracle_kind": "aws-published-reference-estimate",
+    "credentials_required": false
+  },
+  "usage_profile": {
+    "reference_configuration": "default settings in US East (N. Virginia)",
+    "servers_migrated_per_month": 200,
+    "api_gateway_requests_per_month": 10000,
+    "lambda_invocations_per_month": 10000,
+    "lambda_average_duration_ms": 3000,
+    "lambda_memory_mb": 128,
+    "dynamodb_write_requests_per_month": 20000,
+    "dynamodb_read_requests_per_month": 40000,
+    "dynamodb_storage_gb": 1,
+    "s3_storage_mb": 10,
+    "s3_get_requests_per_month": 50000,
+    "cloudfront_https_requests_per_month": 50000,
+    "systems_manager_steps_per_month": 10000,
+    "secrets_manager_secrets": 5,
+    "cognito_direct_sign_in_maus": 50000,
+    "athena_scan_mb_per_day": 10,
+    "migration_tracker_enabled": true,
+    "glue_minutes_per_day": 2,
+    "glue_dpu": 10,
+    "waf_enabled": true,
+    "waf_web_acls": 2,
+    "waf_rules": 2,
+    "waf_requests_per_month": 10000,
+    "cognito_saml_maus": 50,
+    "exclude_recommended_automation_server_ec2_ebs": true
+  },
+  "pricing_basis": {
+    "purchase_option": "AWS published reference scenario and public on-demand rates",
+    "free_tier": true,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "Cloud Migration Factory on AWS architecture",
+        "url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/architecture-overview.html"
+      },
+      {
+        "title": "Cloud Migration Factory on AWS CloudFormation template",
+        "url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/aws-cloudformation-templates.html"
+      },
+      {
+        "title": "Cloud Migration Factory on AWS published cost example",
+        "url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 14.31,
+    "service_calculations": [
+      {
+        "service": "Amazon API Gateway",
+        "monthly_cost_usd": 0.035,
+        "formula": "10,000 requests/month at the AWS-published reference rate.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.035,
+            "cost_usd": 0.035
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Lambda",
+        "monthly_cost_usd": 0.065,
+        "formula": "10,000 invocations/month, 3,000 ms average duration, 128 MB memory.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.065,
+            "cost_usd": 0.065
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "monthly_cost_usd": 0.035,
+        "formula": "20,000 writes, 40,000 reads, and 1 GB storage in the AWS reference table.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.035,
+            "cost_usd": 0.035
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon S3",
+        "monthly_cost_usd": 0.25,
+        "formula": "10 MB storage and 50,000 GET requests/month in the AWS reference table.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.25,
+            "cost_usd": 0.25
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon CloudFront",
+        "monthly_cost_usd": 0.92,
+        "formula": "Reference data transfer and 50,000 HTTPS requests/month.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.92,
+            "cost_usd": 0.92
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Systems Manager",
+        "monthly_cost_usd": 0.0,
+        "formula": "10,000 automation steps/month in the AWS reference table.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.0,
+            "cost_usd": 0.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Secrets Manager",
+        "monthly_cost_usd": 2.0,
+        "formula": "Five secrets for 30 days.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 2.0,
+            "cost_usd": 2.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Cognito",
+        "monthly_cost_usd": 0.0,
+        "formula": "AWS published rows: direct sign-in up to 50,000 MAUs and SAML sign-in up to 50 MAUs are covered by the reference Free Tier assumptions.",
+        "components": [
+          {
+            "name": "Direct sign-in published row",
+            "quantity": 50000,
+            "unit": "monthly active users",
+            "unit_price_usd": 0.0,
+            "cost_usd": 0.0
+          },
+          {
+            "name": "SAML sign-in published row",
+            "quantity": 50,
+            "unit": "monthly active users",
+            "unit_price_usd": 0.0,
+            "cost_usd": 0.0
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "Amazon Athena",
+        "monthly_cost_usd": 0.0015,
+        "formula": "10 MB scanned daily at the AWS reference rate.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 0.0015,
+            "cost_usd": 0.0015
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "AWS Glue",
+        "monthly_cost_usd": 4.4,
+        "formula": "Optional migration tracker: 2 minutes daily, 10 DPU, $0.44/DPU-hour.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 4.4,
+            "cost_usd": 4.4
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      },
+      {
+        "service": "AWS WAF",
+        "monthly_cost_usd": 6.6,
+        "formula": "Two Web ACLs, two rules, and 10,000 requests in the AWS reference table.",
+        "components": [
+          {
+            "name": "AWS published reference estimate",
+            "quantity": 1,
+            "unit": "monthly reference scenario",
+            "unit_price_usd": 6.6,
+            "cost_usd": 6.6
+          }
+        ],
+        "source_url": "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+      }
+    ],
+    "review_notes": [
+      "Oracle reproduces the AWS-published default reference table for 200 migrated servers per month.",
+      "The service rows sum to $14.3065 and AWS displays the rounded total as approximately $14.31.",
+      "The separately recommended t3.large migration automation server and EBS estimate is intentionally outside this case.",
+      "The cost page is oracle evidence and is not listed as an agent public asset.",
+      "The direct and SAML sign-in rows remain separate published components but are evaluated as one Amazon Cognito service."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "Amazon API Gateway",
+      "AWS Lambda",
+      "Amazon DynamoDB",
+      "Amazon S3",
+      "Amazon CloudFront",
+      "AWS Systems Manager",
+      "AWS Secrets Manager",
+      "Amazon Cognito",
+      "Amazon Athena",
+      "AWS Glue",
+      "AWS WAF"
+    ],
+    "required_assumption_ids": [
+      "aws_official_reference_scenario",
+      "migration_tracker_enabled",
+      "waf_enabled",
+      "automation_server_ec2_ebs_excluded",
+      "reference_free_tier_applied",
+      "tax_and_discounts_excluded"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "Amazon API Gateway",
+        "minimum": 0.025,
+        "maximum": 0.045
+      },
+      {
+        "service": "AWS Lambda",
+        "minimum": 0.055,
+        "maximum": 0.075
+      },
+      {
+        "service": "Amazon DynamoDB",
+        "minimum": 0.025,
+        "maximum": 0.045
+      },
+      {
+        "service": "Amazon S3",
+        "minimum": 0.2375,
+        "maximum": 0.2625
+      },
+      {
+        "service": "Amazon CloudFront",
+        "minimum": 0.874,
+        "maximum": 0.966
+      },
+      {
+        "service": "AWS Systems Manager",
+        "minimum": 0.0,
+        "maximum": 0.01
+      },
+      {
+        "service": "AWS Secrets Manager",
+        "minimum": 1.9,
+        "maximum": 2.1
+      },
+      {
+        "service": "Amazon Cognito",
+        "minimum": 0.0,
+        "maximum": 0.01
+      },
+      {
+        "service": "Amazon Athena",
+        "minimum": 0.0,
+        "maximum": 0.0115
+      },
+      {
+        "service": "AWS Glue",
+        "minimum": 4.18,
+        "maximum": 4.62
+      },
+      {
+        "service": "AWS WAF",
+        "minimum": 6.27,
+        "maximum": 6.93
+      }
+    ],
+    "total_range": {
+      "minimum": 13.5945,
+      "maximum": 15.0255
+    },
+    "required_source_urls": [
+      "https://docs.aws.amazon.com/solutions/latest/cloud-migration-factory-on-aws/cost.html"
+    ]
+  },
+  "tags": [
+    "aws-official",
+    "reference-architecture",
+    "credential-free",
+    "cloud-migration-factory",
+    "cloudformation",
+    "serverless",
+    "optional-components"
+  ]
+}

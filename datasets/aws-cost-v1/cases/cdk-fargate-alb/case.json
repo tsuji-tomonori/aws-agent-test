@@ -1,0 +1,137 @@
+{
+  "schema_version": "1.0",
+  "id": "cdk-fargate-alb",
+  "title": "CDK Fargate service behind an internal ALB",
+  "iac_type": "cdk-typescript",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Analyze the CDK stack and estimate 730-hour monthly Fargate and internal ALB cost.",
+  "inputs": [
+    "input/package.json",
+    "input/bin/app.ts",
+    "input/lib/service-stack.ts"
+  ],
+  "usage_profile": {
+    "month_hours": 730,
+    "desired_tasks": 2,
+    "task_vcpu": 0.25,
+    "task_memory_gb": 0.5,
+    "fargate_os": "Linux",
+    "fargate_architecture": "x86_64",
+    "average_alb_lcu": 1.0,
+    "data_transfer_gb": 0
+  },
+  "pricing_basis": {
+    "purchase_option": "public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2026-07-25",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "AWS Fargate Pricing",
+        "url": "https://aws.amazon.com/fargate/pricing/"
+      },
+      {
+        "title": "Elastic Load Balancing Pricing",
+        "url": "https://aws.amazon.com/elasticloadbalancing/pricing/"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 40.28505,
+    "service_calculations": [
+      {
+        "service": "AWS Fargate",
+        "monthly_cost_usd": 18.02005,
+        "formula": "2 tasks × 730h × (0.25 vCPU × $0.04048/vCPU-h + 0.5GB × $0.004445/GB-h)",
+        "components": [
+          {
+            "name": "vCPU",
+            "quantity": 365,
+            "unit": "vCPU-hour",
+            "unit_price_usd": 0.04048,
+            "cost_usd": 14.7752
+          },
+          {
+            "name": "memory",
+            "quantity": 730,
+            "unit": "GB-hour",
+            "unit_price_usd": 0.004445,
+            "cost_usd": 3.24485
+          }
+        ],
+        "source_url": "https://aws.amazon.com/fargate/pricing/"
+      },
+      {
+        "service": "Elastic Load Balancing",
+        "monthly_cost_usd": 22.265,
+        "formula": "730h × $0.0225/ALB-h + 730 LCU-h × $0.008/LCU-h",
+        "components": [
+          {
+            "name": "ALB hours",
+            "quantity": 730,
+            "unit": "ALB-hour",
+            "unit_price_usd": 0.0225,
+            "cost_usd": 16.425
+          },
+          {
+            "name": "LCU hours",
+            "quantity": 730,
+            "unit": "LCU-hour",
+            "unit_price_usd": 0.008,
+            "cost_usd": 5.84
+          }
+        ],
+        "source_url": "https://aws.amazon.com/elasticloadbalancing/pricing/"
+      }
+    ],
+    "review_notes": [
+      "The load balancer is internal, so a public IPv4 hourly charge is not included.",
+      "NAT Gateway, data transfer, logging, tax, and discounts are excluded by the case input."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "AWS Fargate",
+      "Elastic Load Balancing"
+    ],
+    "required_assumption_ids": [
+      "free_tier_excluded",
+      "discounts_excluded",
+      "internal_alb_no_public_ipv4",
+      "data_transfer_excluded"
+    ],
+    "required_missing_input_ids": [],
+    "service_ranges": [
+      {
+        "service": "AWS Fargate",
+        "minimum": 17.66,
+        "maximum": 18.39
+      },
+      {
+        "service": "Elastic Load Balancing",
+        "minimum": 21.84,
+        "maximum": 22.71
+      }
+    ],
+    "total_range": {
+      "minimum": 39.48,
+      "maximum": 41.1
+    },
+    "required_source_urls": [
+      "https://aws.amazon.com/fargate/pricing/",
+      "https://aws.amazon.com/elasticloadbalancing/pricing/"
+    ]
+  },
+  "tags": [
+    "cdk",
+    "containers",
+    "hourly-pricing",
+    "composite-pricing"
+  ]
+}

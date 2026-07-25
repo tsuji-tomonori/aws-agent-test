@@ -1,0 +1,206 @@
+{
+  "schema_version": "1.0",
+  "id": "aws-official-priority-messaging-medium",
+  "title": "AWS official priority messaging architecture — medium published estimate",
+  "iac_type": "architecture-reference",
+  "region": "us-east-1",
+  "currency": "USD",
+  "task": "Read the supplied AWS-published architecture diagram and cost table. Reproduce the Medium (10,000 messages/day) estimate as one representative point per published service row, preserve the published scope, make the total equal the service sum, and cite the AWS article. Do not query live pricing.",
+  "inputs": [
+    "input/official-reference.md"
+  ],
+  "provenance_files": [
+    "provenance/official-reference.json"
+  ],
+  "usage_profile": {
+    "reference_tier": "medium",
+    "messages_per_day": 10000,
+    "estimation_mode": "aws-published-reference-reproduction"
+  },
+  "pricing_basis": {
+    "purchase_option": "AWS-published reference ranges from 2025-11-18",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  },
+  "price_snapshot": {
+    "effective_at": "2025-11-18",
+    "reviewed_at": "2026-07-25",
+    "sources": [
+      {
+        "title": "AWS Architecture Blog — priority-based message processing cost considerations",
+        "url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "title": "AWS Samples — sample-amazonmq-polling-mechanism pinned architecture diagram",
+        "url": "https://github.com/aws-samples/sample-amazonmq-polling-mechanism/blob/6cab865650b4080ade6aa39b8e66372074cc597f/architecture_aws.png"
+      }
+    ]
+  },
+  "oracle": {
+    "monthly_total_usd": 215.0,
+    "service_calculations": [
+      {
+        "service": "Amazon DynamoDB",
+        "monthly_cost_usd": 37.5,
+        "formula": "Representative point selected from AWS-published medium range $25–$50",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 37.5,
+            "cost_usd": 37.5
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "service": "Amazon MQ",
+        "monthly_cost_usd": 30.0,
+        "formula": "Representative point selected from AWS-published medium range $30 fixed (m5.large)",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 30.0,
+            "cost_usd": 30.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "service": "AWS App Runner",
+        "monthly_cost_usd": 100.0,
+        "formula": "Representative point selected from AWS-published medium range $50–$150",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 100.0,
+            "cost_usd": 100.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "service": "Amazon API Gateway WebSocket",
+        "monthly_cost_usd": 17.5,
+        "formula": "Representative point selected from AWS-published medium range $10–$25",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 17.5,
+            "cost_usd": 17.5
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "service": "Amazon CloudWatch Logs",
+        "monthly_cost_usd": 15.0,
+        "formula": "Representative point selected from AWS-published medium range $10–$20",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 15.0,
+            "cost_usd": 15.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      },
+      {
+        "service": "Data Transfer",
+        "monthly_cost_usd": 15.0,
+        "formula": "Representative point selected from AWS-published medium range $10–$20",
+        "components": [
+          {
+            "name": "published medium monthly estimate representative point",
+            "quantity": 1,
+            "unit": "month",
+            "unit_price_usd": 15.0,
+            "cost_usd": 15.0
+          }
+        ],
+        "source_url": "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+      }
+    ],
+    "review_notes": [
+      "Expected ranges are copied from the AWS-published cost table for US East (N. Virginia).",
+      "The deterministic mock oracle uses service-range midpoints and sums to USD 215; AWS did not publish this point value.",
+      "The task is reference reproduction, so the public ranges are intentionally present in input and this case must not be classified as a hidden holdout.",
+      "KMS, Lambda, ECR, S3, CloudFront, and other unlisted diagram components are outside the six-row published cost table and must not be silently added."
+    ]
+  },
+  "expected": {
+    "status": "completed",
+    "required_services": [
+      "Amazon DynamoDB",
+      "Amazon MQ",
+      "AWS App Runner",
+      "Amazon API Gateway WebSocket",
+      "Amazon CloudWatch Logs",
+      "Data Transfer"
+    ],
+    "required_assumption_ids": [
+      "aws_published_reference_not_live_price",
+      "us_east_1",
+      "medium_10000_messages_per_day",
+      "published_scope_excludes_unlisted_services",
+      "representative_point_within_published_ranges"
+    ],
+    "required_missing_input_ids": [],
+    "required_source_urls": [
+      "https://aws.amazon.com/blogs/architecture/build-priority-based-message-processing-with-amazon-mq-and-aws-app-runner/"
+    ],
+    "service_ranges": [
+      {
+        "service": "Amazon DynamoDB",
+        "minimum": 25,
+        "maximum": 50
+      },
+      {
+        "service": "Amazon MQ",
+        "minimum": 30,
+        "maximum": 30
+      },
+      {
+        "service": "AWS App Runner",
+        "minimum": 50,
+        "maximum": 150
+      },
+      {
+        "service": "Amazon API Gateway WebSocket",
+        "minimum": 10,
+        "maximum": 25
+      },
+      {
+        "service": "Amazon CloudWatch Logs",
+        "minimum": 10,
+        "maximum": 20
+      },
+      {
+        "service": "Data Transfer",
+        "minimum": 10,
+        "maximum": 20
+      }
+    ],
+    "total_range": {
+      "minimum": 135,
+      "maximum": 295
+    }
+  },
+  "tags": [
+    "aws-official",
+    "architecture-diagram",
+    "reference-reproduction",
+    "published-cost-range",
+    "credential-free"
+  ]
+}

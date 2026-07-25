@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+runs/
+artifacts/
+.env
+.env.*
+!.env.example
+.DS_Store
+.cache/aws-agent-eval/
+asset-cache/
