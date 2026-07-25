@@ -41,7 +41,10 @@ def load_dataset(dataset_dir: Path, schema_dir: Path | None = None) -> Dataset:
 
 
 def _validate_case_files(case_dir: Path, case_data: dict[str, object]) -> None:
-    references = list(case_data["inputs"])  # type: ignore[arg-type]
+    inputs = case_data["inputs"]
+    if not isinstance(inputs, list):
+        raise ValueError("Case inputs must be a list")
+    references: list[object] = list(inputs)
     provenance = case_data.get("provenance_files", [])
     if isinstance(provenance, list):
         references.extend(provenance)
