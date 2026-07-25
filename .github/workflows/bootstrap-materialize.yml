@@ -1,0 +1,37 @@
+name: Materialize evaluation harness
+
+on:
+  push:
+    branches:
+      - feat/agent-evaluation-harness
+    paths:
+      - ".bootstrap/**"
+      - ".github/workflows/bootstrap-materialize.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Verify and materialize project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .bootstrap/archive.part* > /tmp/project.tar.gz.b64
+          base64 --decode /tmp/project.tar.gz.b64 > /tmp/project.tar.gz
+          echo "bc21b85916a460743df21996240319a93b04e44c690e793c0b52ce7d69654a3a  /tmp/project.tar.gz" | sha256sum --check -
+          tar -xzf /tmp/project.tar.gz
+          rm -rf .bootstrap
+          rm -f .github/workflows/bootstrap-materialize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: add credential-free AWS agent evaluation harness and official AWS fixtures"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
