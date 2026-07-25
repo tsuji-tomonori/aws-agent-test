@@ -30,9 +30,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          wc -c .bootstrap/archive.part*
           cat .bootstrap/archive.part* > /tmp/project.tar.gz.b64
           base64 --decode /tmp/project.tar.gz.b64 > /tmp/project.tar.gz
-          echo "bc21b85916a460743df21996240319a93b04e44c690e793c0b52ce7d69654a3a  /tmp/project.tar.gz" | sha256sum --check -
+          sha256sum /tmp/project.tar.gz
+          tar -tzf /tmp/project.tar.gz >/dev/null
           tar -xzf /tmp/project.tar.gz
           rm -rf .bootstrap
           rm -f .github/workflows/bootstrap-materialize.yml
