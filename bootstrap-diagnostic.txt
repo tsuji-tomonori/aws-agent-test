@@ -1,0 +1,14 @@
+part sizes:
+19000 .bootstrap/archive.part00
+19000 .bootstrap/archive.part01
+19000 .bootstrap/archive.part02
+17424 .bootstrap/archive.part03
+74424 total
+base64 bytes: 74424
+base64 remainder: 0
+decode status: 0
+decoded bytes: 55817
+bc21b85916a460743df21996240319a93b04e44c690e793c0b52ce7d69654a3a  /tmp/project.tar.gz
+tar status: 0
+tar entries: 78
+tar stderr:
