@@ -26,21 +26,32 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref || github.ref_name }}
-      - name: Verify and materialize project
+      - name: Diagnose staged archive
         shell: bash
         run: |
-          set -euo pipefail
-          wc -c .bootstrap/archive.part*
-          cat .bootstrap/archive.part* > /tmp/project.tar.gz.b64
-          base64 --decode /tmp/project.tar.gz.b64 > /tmp/project.tar.gz
-          sha256sum /tmp/project.tar.gz
-          tar -tzf /tmp/project.tar.gz >/dev/null
-          tar -xzf /tmp/project.tar.gz
-          rm -rf .bootstrap
-          rm -f .github/workflows/bootstrap-materialize.yml
+          set +e
+          {
+            echo "part sizes:"
+            wc -c .bootstrap/archive.part*
+            cat .bootstrap/archive.part* > /tmp/project.tar.gz.b64
+            echo "base64 bytes: $(wc -c < /tmp/project.tar.gz.b64)"
+            echo "base64 remainder: $(( $(wc -c < /tmp/project.tar.gz.b64) % 4 ))"
+            base64 --decode /tmp/project.tar.gz.b64 > /tmp/project.tar.gz
+            decode_status=$?
+            echo "decode status: ${decode_status}"
+            echo "decoded bytes: $(wc -c < /tmp/project.tar.gz)"
+            sha256sum /tmp/project.tar.gz
+            tar -tzf /tmp/project.tar.gz >/tmp/tar-list.txt 2>/tmp/tar-error.txt
+            tar_status=$?
+            echo "tar status: ${tar_status}"
+            echo "tar entries: $(wc -l < /tmp/tar-list.txt)"
+            echo "tar stderr:"
+            cat /tmp/tar-error.txt
+          } > bootstrap-diagnostic.txt 2>&1
+          cat bootstrap-diagnostic.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "feat: add credential-free AWS agent evaluation harness and official AWS fixtures"
+          git add bootstrap-diagnostic.txt
+          git commit -m "chore: record bootstrap archive diagnostics"
           git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          exit 1
