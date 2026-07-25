@@ -7,6 +7,12 @@ on:
     paths:
       - ".bootstrap/**"
       - ".github/workflows/bootstrap-materialize.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".bootstrap/**"
+      - ".github/workflows/bootstrap-materialize.yml"
 
 permissions:
   contents: write
@@ -19,6 +25,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
       - name: Verify and materialize project
         shell: bash
         run: |
@@ -34,4 +41,4 @@ jobs:
           git add -A
           git diff --cached --check
           git commit -m "feat: add credential-free AWS agent evaluation harness and official AWS fixtures"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
