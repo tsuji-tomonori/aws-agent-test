@@ -1,2 +1,0 @@
-ruff status after autofix: 0
-Found 11 errors (11 fixed, 0 remaining).
