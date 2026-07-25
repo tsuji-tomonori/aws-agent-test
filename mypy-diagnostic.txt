@@ -1,0 +1,13 @@
+mypy status: 1
+src/aws_agent_eval/schema.py:6: error: Library stubs not installed for "jsonschema"  [import-untyped]
+src/aws_agent_eval/evaluator.py:8: error: Library stubs not installed for "jsonschema"  [import-untyped]
+src/aws_agent_eval/evaluator.py:8: note: Hint: "python3 -m pip install types-jsonschema"
+src/aws_agent_eval/evaluator.py:8: note: (or run "mypy --install-types" to install all missing stub packages)
+src/aws_agent_eval/evaluator.py:8: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+src/aws_agent_eval/dataset.py:44: error: Unused "type: ignore" comment  [unused-ignore]
+src/aws_agent_eval/dataset.py:44: error: No overload variant of "list" matches argument type "object"  [call-overload]
+src/aws_agent_eval/dataset.py:44: note: Error code "call-overload" not covered by "type: ignore" comment
+src/aws_agent_eval/dataset.py:44: note: Possible overload variants:
+src/aws_agent_eval/dataset.py:44: note:     def [_T] list() -> list[_T]
+src/aws_agent_eval/dataset.py:44: note:     def [_T] list(Iterable[_T], /) -> list[_T]
+Found 4 errors in 3 files (checked 17 source files)
