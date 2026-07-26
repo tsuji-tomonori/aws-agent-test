@@ -7,6 +7,12 @@ on:
     paths:
       - ".bootstrap/aws-agent-ablation/**"
       - ".github/workflows/materialize-local-agent-ablation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".bootstrap/aws-agent-ablation/**"
+      - ".github/workflows/materialize-local-agent-ablation.yml"
 
 permissions:
   contents: write
@@ -19,7 +25,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
       - name: Verify and materialize benchmark
         shell: bash
         run: |
@@ -37,4 +43,4 @@ jobs:
           git add -A
           git diff --cached --check
           git commit -m "test: add local AWS Agent skill and pricing ablation"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
