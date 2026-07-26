@@ -38,6 +38,7 @@ jobs:
           rm -rf .bootstrap/aws-agent-ablation
           rmdir .bootstrap 2>/dev/null || true
           rm -f .github/workflows/materialize-local-agent-ablation.yml
+          rm -f .github/workflows/local-agent-ablation.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
