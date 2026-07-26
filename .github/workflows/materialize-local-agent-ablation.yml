@@ -1,0 +1,53 @@
+name: Materialize local AWS Agent ablation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".bootstrap/aws-agent-ablation/**"
+      - ".github/workflows/materialize-local-agent-ablation.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Record archive diagnostics
+        shell: bash
+        run: |
+          set +e
+          {
+            echo "parts:"
+            wc -c .bootstrap/aws-agent-ablation/archive.part*
+            cat .bootstrap/aws-agent-ablation/archive.part* > /tmp/aws-agent-ablation.tar.gz.b64
+            echo "base64 bytes: $(wc -c < /tmp/aws-agent-ablation.tar.gz.b64)"
+            echo "base64 remainder: $(( $(wc -c < /tmp/aws-agent-ablation.tar.gz.b64) % 4 ))"
+            base64 --decode /tmp/aws-agent-ablation.tar.gz.b64 > /tmp/aws-agent-ablation.tar.gz
+            decode_status=$?
+            echo "decode status: ${decode_status}"
+            echo "decoded bytes: $(wc -c < /tmp/aws-agent-ablation.tar.gz)"
+            sha256sum /tmp/aws-agent-ablation.tar.gz
+            echo "expected: f4c32923d035dd6b5acc88edb64316668de0a3038abf7308127e039f82611c45"
+            tar -tzf /tmp/aws-agent-ablation.tar.gz >/tmp/tar-list.txt 2>/tmp/tar-error.txt
+            tar_status=$?
+            echo "tar status: ${tar_status}"
+            echo "tar entries: $(wc -l < /tmp/tar-list.txt)"
+            cat /tmp/tar-list.txt
+            echo "tar stderr:"
+            cat /tmp/tar-error.txt
+          } > bootstrap-diagnostic.txt 2>&1
+          cat bootstrap-diagnostic.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bootstrap-diagnostic.txt
+          git commit -m "chore: record ablation archive diagnostics"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          exit 1
