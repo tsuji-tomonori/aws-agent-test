@@ -2,9 +2,9 @@ name: AWS Agent ablation benchmark
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - agent/aws-agent-ablation-benchmark
+      - main
     paths:
       - ".github/workflows/aws-agent-ablation.yml"
       - "benchmarks/aws-agent-ablation/**"
