@@ -1,0 +1,173 @@
+name: AWS Agent ablation benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/aws-agent-ablation-benchmark
+    paths:
+      - ".github/workflows/aws-agent-ablation.yml"
+      - "benchmarks/aws-agent-ablation/**"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      AWS_EC2_METADATA_DISABLED: "true"
+      OLLAMA_HOST: "127.0.0.1:11434"
+      OLLAMA_KEEP_ALIVE: "-1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_CONTEXT_LENGTH: "8192"
+      OPENCODE_AUTO_SHARE: "false"
+      OPENCODE_DISABLE_AUTOUPDATE: "true"
+      NO_COLOR: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Cache Ollama models
+        uses: actions/cache@v5
+        with:
+          path: ~/.ollama/models
+          key: ollama-aws-agent-ablation-qwen25-05b-gemma3-1b-v1
+
+      - name: Install benchmark dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]' 'mcp>=1.12,<2' 'uv>=0.8,<1'
+          npm install --global opencode-ai@1.18.5 || npm install --global opencode-ai
+          curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Pin the official AWS deploy skill
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/awslabs/agent-plugins.git /tmp/agent-plugins
+          git -C /tmp/agent-plugins checkout 089861a4596343c2b8135cc4f7cc68655a081864
+          test -f /tmp/agent-plugins/plugins/deploy-on-aws/skills/deploy/SKILL.md
+          echo "AWS_AGENT_SKILL_SOURCE=/tmp/agent-plugins/plugins/deploy-on-aws/skills/deploy" >> "$GITHUB_ENV"
+
+      - name: Start Ollama and pull lightweight models
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+            nohup ollama serve > /tmp/ollama.log 2>&1 &
+          fi
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl --silent --fail http://127.0.0.1:11434/api/tags >/dev/null
+          ollama pull qwen2.5:0.5b-instruct-q4_0
+          ollama pull gemma3:1b
+          ollama list
+
+      - name: Record tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/aws-agent-ablation
+          {
+            echo "python=$(python --version 2>&1)"
+            echo "node=$(node --version)"
+            echo "npm=$(npm --version)"
+            echo "opencode=$(opencode --version 2>&1)"
+            echo "ollama=$(ollama --version 2>&1)"
+            echo "uvx=$(uvx --version 2>&1)"
+            echo "skill_commit=$(git -C /tmp/agent-plugins rev-parse HEAD)"
+            echo "runner=$(uname -a)"
+            lscpu
+            free -h
+          } | tee artifacts/aws-agent-ablation/tool-versions.txt
+
+      - name: Verify OpenCode can use the local model
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          cat > "$tmpdir/opencode.json" <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "ollama": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Ollama local benchmark",
+                "options": {"baseURL": "http://127.0.0.1:11434/v1"},
+                "models": {
+                  "qwen2.5:0.5b-instruct-q4_0": {"name": "qwen2.5:0.5b-instruct-q4_0"}
+                }
+              }
+            },
+            "tools": {"bash": false, "edit": false, "write": false}
+          }
+          JSON
+          OPENCODE_CONFIG="$tmpdir/opencode.json" \
+            timeout 180 opencode run \
+              --dir "$tmpdir" \
+              --model ollama/qwen2.5:0.5b-instruct-q4_0 \
+              --format json \
+              --dangerously-skip-permissions \
+              'Return the single word READY.' \
+              | tee artifacts/aws-agent-ablation/opencode-preflight.jsonl
+          grep -q 'READY' artifacts/aws-agent-ablation/opencode-preflight.jsonl
+
+      - name: Probe official AWS Pricing MCP without AWS credentials
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN -u AWS_PROFILE \
+            python benchmarks/aws-agent-ablation/probe_official_pricing_mcp.py \
+              artifacts/aws-agent-ablation/official-pricing-mcp-probe.json
+          cat artifacts/aws-agent-ablation/official-pricing-mcp-probe.json
+
+      - name: Run controlled AWS Agent ablation benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          python benchmarks/aws-agent-ablation/run_benchmark.py \
+            --output artifacts/aws-agent-ablation
+          cat artifacts/aws-agent-ablation/ablation-report.md
+
+      - name: Archive benchmark evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f /tmp/ollama.log; then
+            cp /tmp/ollama.log artifacts/aws-agent-ablation/ollama.log
+          fi
+          tar -czf artifacts/aws-agent-ablation.tar.gz -C artifacts aws-agent-ablation
+          sha256sum artifacts/aws-agent-ablation.tar.gz \
+            > artifacts/aws-agent-ablation.tar.gz.sha256
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: aws-agent-ablation-results
+          path: |
+            artifacts/aws-agent-ablation/
+            artifacts/aws-agent-ablation.tar.gz
+            artifacts/aws-agent-ablation.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
