@@ -1,0 +1,16 @@
+parts:
+wc: '.bootstrap/aws-agent-ablation/archive.part*': No such file or directory
+cat: '.bootstrap/aws-agent-ablation/archive.part*': No such file or directory
+base64 bytes: 0
+base64 remainder: 0
+decode status: 0
+decoded bytes: 0
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  /tmp/aws-agent-ablation.tar.gz
+expected: f4c32923d035dd6b5acc88edb64316668de0a3038abf7308127e039f82611c45
+tar status: 2
+tar entries: 0
+tar stderr:
+
+gzip: stdin: unexpected end of file
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now
