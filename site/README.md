@@ -2,6 +2,8 @@
 
 Astro Starlightで作成した、`aws-agent-test`の実践型ハンズオンです。
 
+公開サイト: https://tsuji-tomonori.github.io/aws-agent-test/
+
 ```bash
 npm install
 npm run dev
