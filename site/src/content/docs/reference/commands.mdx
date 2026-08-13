@@ -1,0 +1,62 @@
+---
+title: コマンド早見表
+description: Workshopで使用する認証不要コマンドと任意のLiveコマンドを一覧できます。
+tableOfContents: false
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import Command from '../../../components/Command.astro';
+
+<Tabs>
+  <TabItem label="検証">
+    <Command title="Dataset validate">
+
+    ```bash
+    aws-agent-eval validate --dataset datasets/aws-cost-v1
+    aws-agent-eval validate --dataset datasets/aws-official-solutions-v1
+    ```
+
+    </Command>
+  </TabItem>
+  <TabItem label="Mock実験">
+    <Command title="Experiment + Report">
+
+    ```bash
+    aws-agent-eval experiment \
+      --dataset datasets/aws-official-solutions-v1 \
+      --profile config/profiles/mock.json \
+      --repetitions 3 \
+      --run-dir runs/onboarding-mock
+    aws-agent-eval report --run-dir runs/onboarding-mock
+    ```
+
+    </Command>
+  </TabItem>
+  <TabItem label="Judge">
+    <Command title="Prepare + Aggregate">
+
+    ```bash
+    aws-agent-eval prepare-judge --run-dir runs/example --repeats 3
+    aws-agent-eval aggregate-judge \
+      --run-dir runs/example \
+      --input runs/example/judge/judgments.jsonl
+    ```
+
+    </Command>
+  </TabItem>
+  <TabItem label="公開asset">
+    <Command title="Anonymous HTTPS">
+
+    ```bash
+    aws-agent-eval fetch-assets \
+      --dataset datasets/aws-official-solutions-v1 \
+      --cache-dir asset-cache
+    ```
+
+    </Command>
+  </TabItem>
+</Tabs>
+
+<Aside type="caution" title="認証境界">
+  `validate`、Mock、report、Judge batch準備にAWS認証は不要です。Live profileはAgent CLI認証、Pricing MCP profileは短期AWS認証と`pricing:*`を別途必要とします。
+</Aside>

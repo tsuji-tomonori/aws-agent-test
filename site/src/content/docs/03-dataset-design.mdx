@@ -1,0 +1,85 @@
+---
+title: 3. ケースを設計する
+description: Agentへ渡す入力と、評価側だけが持つoracleを分離したケースを設計します。
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15分" level="中級" credentials="不要" cost="$0" />
+
+良い評価は問題文から始まります。ケースを増やす前に、入力形式、課金パターン、曖昧さ、期待状態、サービス種別、価格取得方法の偏りを設計表で確認します。
+
+<Steps>
+
+1. ### 既存ケースの構造を見る
+
+   <Tabs>
+     <TabItem label="入力（Agentに見える）">
+       `cases/<case-id>/input/`のIaCやscenario、検証済みの公開asset、生成された`TASK.md`、出力Schemaだけです。
+     </TabItem>
+     <TabItem label="評価契約（Agentに見せない）">
+       `case.json`の`expected`、oracle、価格レンジ、price snapshot、provenance、公式cost page URLです。
+     </TabItem>
+   </Tabs>
+
+2. ### 情報不足ケースを設計する
+
+   <ConsoleStep title="推測ではなく確認質問を正解にする" label="ケース設計">
+
+   利用量が欠けている場合、もっともらしい値を補うAgentを成功扱いしません。`required_missing_input_ids`に安定IDを列挙し、自然文の完全一致ではなくID集合で判定します。
+
+   ```json
+   {
+     "expected_status": "needs_clarification",
+     "required_missing_input_ids": [
+       "monthly-request-count",
+       "average-response-size"
+     ]
+   }
+   ```
+
+   </ConsoleStep>
+
+3. ### oracleの作成手順を分離する
+
+   IaCから課金対象を抽出し、usageを価格単位へ変換し、region・tier・購入形態を固定して式を計算します。作成者とは別の人が一次資料から再計算して差異を解消します。
+
+4. ### 漏洩テストを実行する
+
+   <Command title="ケース契約と漏洩防止テスト">
+
+   ```bash
+   pytest tests/test_dataset.py tests/test_runner.py
+   ```
+
+   </Command>
+
+   <ExpectedResult>
+
+   テストが成功し、生成された`TASK.md`にexpected range、oracle、公式cost page URLが含まれないことが確認されます。
+
+   </ExpectedResult>
+
+5. ### version更新ルールを決める
+
+   ケース追加はminor、契約破壊はmajor、価格更新はpatchです。公開済みdatasetを上書きせず、新しいversionとして残します。
+
+</Steps>
+
+<Aside type="caution" title="公開情報でもoracleになり得る">
+  AWSが公開している金額でも、Agentの試行workspaceへ直接渡せばholdoutではありません。出典を保存することと、回答時に見せることを分けます。
+</Aside>
+
+<Checkpoint>
+
+- [ ] Agent入力と評価側情報を説明できる
+- [ ] 情報不足を安定IDで評価する理由を説明できる
+- [ ] oracleの作成とレビューを分離した
+- [ ] ケース種別を一つの平均へ混ぜない
+
+</Checkpoint>

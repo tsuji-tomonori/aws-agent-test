@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AWS Agent Evaluation Workshop">
+  <rect width="64" height="64" rx="14" fill="#0b1320"/>
+  <path d="M18 43 29 17h7l11 26h-8l-2-6H27l-2 6h-7Zm11-12h6l-3-9-3 9Z" fill="#f8fafc"/>
+  <path d="M14 50c11 6 26 6 37-1" fill="none" stroke="#ff9900" stroke-linecap="round" stroke-width="5"/>
+</svg>

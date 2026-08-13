@@ -1,0 +1,85 @@
+---
+title: 2. Mockで配線を試す
+description: 外部LLMを呼ぶ前に、成功・失敗・集計の配線を再現可能なMockで確認します。
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15分" credentials="不要" cost="$0" />
+
+Mockは「簡単な代用品」ではなく、runner・workspace隔離・evaluator・reporterを決定的に検査するための基準器です。
+
+<Steps>
+
+1. ### 正常系を3回実行する
+
+   <Command title="Mock実験を開始">
+
+   ```bash
+   aws-agent-eval experiment \
+     --dataset datasets/aws-official-solutions-v1 \
+     --profile config/profiles/mock.json \
+     --repetitions 3 \
+     --run-dir runs/onboarding-mock
+   ```
+
+   </Command>
+
+2. ### レポートを生成する
+
+   <Command title="結果を集計">
+
+   ```bash
+   aws-agent-eval report --run-dir runs/onboarding-mock
+   ```
+
+   </Command>
+
+   <ExpectedResult>
+
+   3ケース × 3回のtrialが保存され、`runs/onboarding-mock/report.md`と`results.json`が生成されます。公式3ケースの`pass^3`が満たされます。
+
+   </ExpectedResult>
+
+3. ### trial workspaceを観察する
+
+   <ConsoleStep title="Agentに見えるもの／見えないものを比較する">
+
+   trial配下には`TASK.md`、`input/`、`agent-output.schema.json`、出力証跡だけが置かれます。元の`case.json`にあるexpected、oracle、価格レンジ、cost page URLはコピーされません。
+
+   </ConsoleStep>
+
+4. ### FlakyなAgentを体験する
+
+   <Command title="意図的に不安定なMockを実行">
+
+   ```bash
+   aws-agent-eval experiment \
+     --dataset datasets/aws-cost-v1 \
+     --profile config/profiles/mock-flaky.json \
+     --repetitions 5 \
+     --run-dir runs/flaky-demo
+   aws-agent-eval report --run-dir runs/flaky-demo
+   ```
+
+   </Command>
+
+   <Aside type="tip" title="観察ポイント">
+     同じケースでも成功と失敗が混ざると、pass@5は高くてもpass^5は低くなります。「何度か試せば成功」と「毎回任せられる」は別の性質です。
+   </Aside>
+
+</Steps>
+
+<Checkpoint>
+
+- [ ] 正常Mockでrunnerからreportまでの配線を確認した
+- [ ] oracleがtrial workspaceへ入らないことを確認した
+- [ ] flaky profileでpass@kとpass^kの違いを観察した
+- [ ] 一回の失敗を「運が悪い」で片付けない理由を説明できる
+
+</Checkpoint>

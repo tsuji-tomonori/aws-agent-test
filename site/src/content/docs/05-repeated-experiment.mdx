@@ -1,0 +1,74 @@
+---
+title: 5. 反復実験を評価する
+description: success rate、Wilson信頼区間、pass@k、pass^kを使って非決定性を読み解きます。
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15分" level="中級" credentials="不要（Mock）" cost="$0" />
+
+非決定的なAgentは、同じ入力でも結果が変わります。そこで「成功したか」に加え、「どの程度の確率で、どのケースを、繰り返しても成功できたか」を測ります。
+
+<Steps>
+
+1. ### 5回のtrialを作る
+
+   <Command title="反復実験">
+
+   ```bash
+   aws-agent-eval experiment \
+     --dataset datasets/aws-cost-v1 \
+     --profile config/profiles/mock-flaky.json \
+     --repetitions 5 \
+     --run-dir runs/reliability-lab
+   aws-agent-eval report --run-dir runs/reliability-lab
+   ```
+
+   </Command>
+
+2. ### 4つの指標を読む
+
+   <ConsoleStep title="指標を運用上の問いへ翻訳する" label="分析">
+
+   | 指標 | 答える問い |
+   |---|---|
+   | trial success rate | 全trialのうち何%が合格したか |
+   | Wilson 95% CI | 少数試行の成功率をどこまで信用できるか |
+   | pass@k | k回のうち1回以上成功するケースは何%か |
+   | pass^k | k回すべて成功するケースは何%か |
+
+   </ConsoleStep>
+
+3. ### pass@kとpass^kを比較する
+
+   1回でも成功すればよいデモではpass@kが参考になります。人手確認なしで反復運用するAgentでは、**すべて成功するpass^k**がより厳しい主要指標です。
+
+4. ### 失敗taxonomyを作る
+
+   失敗をtimeout、Schema、対象漏れ、算術、価格根拠、確認質問、説明品質へ分類します。「Agentが不安定だった」の一行で終わらせず、修正対象をdataset・prompt・tool・modelへ割り当てます。
+
+</Steps>
+
+<Aside type="note" title="5/5でも100%とは限らない">
+  少数試行の全成功を過信しないためにWilson信頼区間を併記します。反復数はpilotの時間と推論費用を見て決めます。
+</Aside>
+
+<ExpectedResult>
+
+「このprofileは成功率80%」だけでなく、「どの失敗がcriticalで、pass^kが運用条件を満たすか」まで判断できます。
+
+</ExpectedResult>
+
+<Checkpoint>
+
+- [ ] pass@kとpass^kを用途別に説明できる
+- [ ] confidence intervalを成功率と併記する
+- [ ] critical failureを品質スコアで相殺しない
+- [ ] 変更後は同一条件で再測定する
+
+</Checkpoint>

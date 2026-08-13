@@ -1,0 +1,11 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = 'こうなればOK' } = Astro.props;
+---
+
+<aside class="expected-result">
+  <div class="expected-result__icon" aria-hidden="true">✓</div>
+  <div><strong>{title}</strong><div class="expected-result__body"><slot /></div></div>
+</aside>

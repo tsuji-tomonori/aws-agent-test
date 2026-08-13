@@ -1,0 +1,11 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = 'チェックポイント' } = Astro.props;
+---
+
+<aside class="checkpoint">
+  <div class="checkpoint__flag" aria-hidden="true">◆</div>
+  <div><strong>{title}</strong><div class="checkpoint__body"><slot /></div></div>
+</aside>
