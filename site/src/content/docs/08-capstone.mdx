@@ -1,0 +1,75 @@
+---
+title: 8. 評価計画を完成させる
+description: 学んだ設計を一枚の実験計画へまとめ、再現可能な測定へつなげます。
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15分" level="中級" credentials="不要" cost="$0" />
+
+最後に、チームの実験を始める前のレビュー資料を作ります。以下をコピーし、対象Agentに合わせて埋めてください。
+
+<Steps>
+
+1. ### 評価の問いを一文にする
+
+   <ConsoleStep title="評価対象と成功条件" label="TEMPLATE">
+
+   **対象:** `[model + CLI + tools + prompt + permissions]` が、`[dataset/version]` の `[case種別]` を、`[価格取得モード]` で実行する。
+
+   **成功:** critical failureなし、trial success rate `[目標]`、Wilson 95% CIを併記、pass^`[k]` ≥ `[目標]`、Judgeの4次元がすべて3以上。
+
+   </ConsoleStep>
+
+2. ### 変更しない条件を凍結する
+
+   - profile fileとpromptのdigest
+   - Agent CLI、model、plugin/skill version
+   - dataset ID/versionとcase集合
+   - public asset lock digestと価格基準日
+   - timeout、最大turn、repetitions、run命名規則
+
+3. ### 実験順序を宣言する
+
+   1. mock-goodで配線を確認
+   2. mock-flakyで集計を確認
+   3. 1ケース1回のLive pilot
+   4. 失敗taxonomyと費用をレビュー
+   5. 条件を凍結して5回以上の本測定
+   6. 同一条件で再測定し、変更前後を別runで比較
+
+4. ### 中止条件を決める
+
+   秘密情報の出力、予期しない外部書き込み、AWS変更操作、費用上限超過、oracle漏洩、workspace外への出力が見つかったら実験を停止します。
+
+5. ### 独立再現を依頼する
+
+   別のメンバーが口頭補助なしでmock runと認証不要pilotを完了できるか確認します。環境差分と迷った箇所も実験結果として残します。
+
+</Steps>
+
+<ExpectedResult title="Workshop Complete">
+
+一回の成功画面ではなく、入力・実行条件・判定・証跡・安全境界がそろった評価計画が完成しました。次の実験結果は「再実行でき、失敗理由を追跡できる」状態です。
+
+</ExpectedResult>
+
+<Checkpoint title="最終レビュー">
+
+- [ ] 評価対象をモデル名だけで表現していない
+- [ ] Agentに見せる情報とoracleを分離した
+- [ ] critical gate、反復指標、Judgeの責務を分けた
+- [ ] pass^kとWilson CIを主要レポートに含める
+- [ ] Liveは1ケース1回から始める
+- [ ] AWS変更権限を評価経路へ持ち込まない
+- [ ] profile/dataset/tool変更後は別runとして再測定する
+
+</Checkpoint>
+
+<Aside type="tip" title="次の改善はデータから決める">
+  失敗がSchemaならparserやprompt、サービス漏れならtool/入力、価格変動ならsource固定、説明品質ならrubricというように、taxonomyから修正対象を選びます。
+</Aside>

@@ -1,0 +1,67 @@
+---
+title: 1. 評価対象を定義する
+description: モデル単体ではなく実行系全体を評価単位として固定します。
+---
+
+import { Steps, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="10分" credentials="不要" cost="$0" />
+
+評価対象はモデル名だけではありません。このリポジトリでは、次の組み合わせ全体を一つの**profile**として扱います。
+
+<CardGrid>
+  <Card title="推論系" icon="seti:config">model / Agent CLI / prompt</Card>
+  <Card title="道具" icon="puzzle">Plugin / Skill / MCP / parser</Card>
+  <Card title="情報と権限" icon="lock">価格ソース / permissions / environment</Card>
+  <Card title="試験問題" icon="document">dataset / case / oracle / rubric</Card>
+</CardGrid>
+
+<Steps>
+
+1. ### 1 trialの境界を決める
+
+   1 trialは「1ケースを、前回の会話状態を引き継がずに1回実行したもの」です。会話履歴や別ケースの出力を共有すると、独立試行ではなくなります。
+
+2. ### 三層評価へ分解する
+
+   <ConsoleStep title="判定を適切な層へ配置する" label="設計">
+
+   | 層 | 何を見るか | 例 |
+   |---|---|---|
+   | 決定的ゲート | 正誤をコードで確定できる条件 | Schema、算術、必須サービス、URL |
+   | 反復信頼性 | 非決定性の大きさ | success rate、Wilson CI、pass@k、pass^k |
+   | LLM Judge | 意味品質 | 仮定、不確実性、除外事項、行動可能性 |
+
+   </ConsoleStep>
+
+3. ### critical failureを定義する
+
+   timeout、契約違反、必須サービス欠落、価格レンジ逸脱、合計不一致、必須URL欠落はcriticalです。説明が美しくても合格にはしません。
+
+   <Aside type="caution" title="平均点の罠">
+     「文章品質5点」が「必須サービス欠落」を相殺する設計では、利用者に危険な回答を高得点にできます。合否ゲートと診断スコアを分離します。
+   </Aside>
+
+4. ### ケース種別を分ける
+
+   - **hidden estimation**: oracleをAgentに見せず推定能力を測る
+   - **official-reference holdout**: AWS公式構成を見せ、公表コストは隠す
+   - **public reference reproduction**: 公開済み結果も入力し、構造化再現性を測る
+
+</Steps>
+
+<ExpectedResult title="ここまでの到達点">
+
+「どのモデルが一番か」ではなく、「固定した実行系が、このdatasetで、critical条件を満たしながら何回安定して成功したか」という問いに置き換えられています。
+
+</ExpectedResult>
+
+<Checkpoint>
+
+設定・tool・prompt・datasetのどれかを変更した結果は、同じrunへ上書きせず、別profileまたは別runとして保存します。
+
+</Checkpoint>

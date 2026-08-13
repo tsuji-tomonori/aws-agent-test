@@ -1,0 +1,99 @@
+---
+title: 0. 環境を準備する
+description: リポジトリとPython環境を用意し、認証なしの検証コマンドを通します。
+sidebar:
+  order: 1
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="10分" credentials="不要" cost="$0" />
+
+このモジュールでは、評価ハーネスをローカルへ準備し、データセットの契約が壊れていないことを確認します。AWS CLIやAWSアカウントは使いません。
+
+<Aside type="note" title="必要なもの">
+  Git、Python 3.11以降、ターミナルが必要です。WindowsはWSLの利用を推奨します。
+</Aside>
+
+<Steps>
+
+1. ### リポジトリを取得する
+
+   <Command title="リポジトリを取得">
+
+   ```bash
+   git clone https://github.com/tsuji-tomonori/aws-agent-test.git
+   cd aws-agent-test
+   ```
+
+   </Command>
+
+2. ### Python環境を作る
+
+   <Tabs>
+     <TabItem label="macOS / Linux / WSL">
+       <Command title="仮想環境を作成">
+
+       ```bash
+       python3 -m venv .venv
+       source .venv/bin/activate
+       python -m pip install -e '.[dev]'
+       ```
+
+       </Command>
+     </TabItem>
+     <TabItem label="Windows PowerShell">
+       <Command title="仮想環境を作成" prompt="POWERSHELL">
+
+       ```powershell
+       py -3.11 -m venv .venv
+       .\.venv\Scripts\Activate.ps1
+       python -m pip install -e ".[dev]"
+       ```
+
+       </Command>
+     </TabItem>
+   </Tabs>
+
+3. ### 2つのデータセットを検証する
+
+   <ConsoleStep title="Schemaとケース間の整合性を検査する">
+
+   `validate`はAgentを呼びません。JSON Schema、ケース参照、expected、公開asset契約などを機械的に確認します。
+
+   <Command title="データセットを検証">
+
+   ```bash
+   aws-agent-eval validate --dataset datasets/aws-cost-v1
+   aws-agent-eval validate --dataset datasets/aws-official-solutions-v1
+   ```
+
+   </Command>
+
+   </ConsoleStep>
+
+   <ExpectedResult>
+
+   両方のコマンドが終了コード`0`で完了し、エラーが表示されません。この時点ではネットワーク通信もAWS認証も発生しません。
+
+   </ExpectedResult>
+
+4. ### 安全境界を確認する
+
+   `.gitignore`に`runs/`と`asset-cache/`が含まれ、`.github/workflows/ci.yml`がmock profileだけを実行することを確認します。
+
+</Steps>
+
+<Checkpoint>
+
+- [ ] Python 3.11以降を使っている
+- [ ] 2つのdatasetがvalidateを通る
+- [ ] AWS認証情報を設定せずに完了した
+- [ ] `runs/`をGitへ追加しない理由を説明できる
+
+</Checkpoint>

@@ -1,0 +1,16 @@
+---
+interface Props {
+  title: string;
+  label?: string;
+}
+
+const { title, label = '操作' } = Astro.props;
+---
+
+<section class="console-step">
+  <div class="console-step__head">
+    <span class="console-step__label">{label}</span>
+    <h3>{title}</h3>
+  </div>
+  <div class="console-step__body"><slot /></div>
+</section>

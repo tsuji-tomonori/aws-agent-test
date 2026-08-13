@@ -1,0 +1,68 @@
+---
+title: 4. Profileを読み解く
+description: Agent CLI、prompt、parser、権限境界を一つの実験条件として固定します。
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="10分" level="中級" credentials="標準は不要" cost="$0" />
+
+Profileはモデル名の別名ではなく、再現に必要な実行条件の束です。`config/profiles/`にはMock、Codex、Claude Code、Pricing MCPを分離した設定があります。
+
+<Steps>
+
+1. ### Profile間の差分を見る
+
+   <Command title="Profile一覧">
+
+   ```bash
+   ls config/profiles
+   ```
+
+   </Command>
+
+   <Tabs>
+     <TabItem label="mock.json">外部CLIを呼ばず、CIと配線確認に使います。</TabItem>
+     <TabItem label="codex / claude-code">公開資料で解く標準Live profileです。AWS profileは不要です。</TabItem>
+     <TabItem label="*-pricing-mcp">AWS Pricing MCPを明示的に試す別profileです。短期認証と`pricing:*`だけを使います。</TabItem>
+   </Tabs>
+
+2. ### 前提条件を機械確認する
+
+   <ConsoleStep title="選んだProfileだけを検査する">
+
+   ```bash
+   aws-agent-eval check-prerequisites \
+     --profile config/profiles/codex.json
+   ```
+
+   このコマンドは、CLIの存在、設定した環境変数、実行前提を検査します。標準profileのためにAWS権限を追加してはいけません。
+
+   </ConsoleStep>
+
+3. ### 実験条件のdigestを残す
+
+   model、Agent CLI version、plugin/skill version、profile file digest、dataset version、asset lock digest、価格取得モードをrun evidenceとして保存します。
+
+4. ### 比較の単位を固定する
+
+   prompt、tool、model、権限のどれか一つでも変更したら別profileとして測定します。改善後のrunを過去runへ上書きしません。
+
+</Steps>
+
+<ExpectedResult title="Profile設計の完成条件">
+
+第三者がprofileと記録を見れば、「どのCLIが、どのpromptとtoolを使い、何へアクセスできたか」を再構成できます。
+
+</ExpectedResult>
+
+<Checkpoint>
+
+Pricing MCPの認証失敗を、CloudFormation・IAM・EC2・S3などの変更権限追加で解決しません。価格参照の実験とデプロイ可能な権限は分離します。
+
+</Checkpoint>

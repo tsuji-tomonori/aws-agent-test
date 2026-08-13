@@ -1,0 +1,22 @@
+---
+interface Props {
+  time: string;
+  level?: '入門' | '中級' | '発展';
+  credentials?: string;
+  cost?: string;
+}
+
+const {
+  time,
+  level = '入門',
+  credentials = 'AWS認証不要',
+  cost = '$0',
+} = Astro.props;
+---
+
+<div class="task-meta" aria-label="このモジュールの情報">
+  <div><span>所要時間</span><strong>{time}</strong></div>
+  <div><span>レベル</span><strong>{level}</strong></div>
+  <div><span>認証</span><strong>{credentials}</strong></div>
+  <div><span>想定コスト</span><strong>{cost}</strong></div>
+</div>

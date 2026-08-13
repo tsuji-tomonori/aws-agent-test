@@ -15,3 +15,6 @@ artifacts/
 .DS_Store
 .cache/aws-agent-eval/
 asset-cache/
+site/node_modules/
+site/dist/
+.astro/

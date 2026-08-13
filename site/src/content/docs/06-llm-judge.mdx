@@ -1,0 +1,80 @@
+---
+title: 6. LLM Judgeを校正する
+description: 意味品質だけを匿名・反復判定し、決定的評価を補完するJudgeを設計します。
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15分" level="発展" credentials="準備のみ不要" cost="Judge実行時は別途" />
+
+Judgeへ任せるのは、仮定、不確実性、除外事項、行動可能性の4次元だけです。価格、合計、Schema、必須サービス、質問IDは決定的evaluatorが判定します。
+
+<Steps>
+
+1. ### 匿名の判定batchを作る
+
+   <Command title="Judge入力を準備">
+
+   ```bash
+   aws-agent-eval prepare-judge \
+     --run-dir runs/reliability-lab \
+     --repeats 3
+   ```
+
+   </Command>
+
+   `judge/batch.jsonl`にはprofile名とmodel名を含めません。順序をランダム化し、同じ回答を3回判定します。
+
+2. ### 固定rubricで判定する
+
+   <ConsoleStep title="Judgeの責務を4次元へ限定する" label="RUBRIC">
+
+   | 次元 | 低品質 | 合格の目安 | 高品質 |
+   |---|---|---|---|
+   | 仮定 | 暗黙・矛盾 | 主な仮定を列挙 | 根拠と影響まで接続 |
+   | 不確実性 | 推測を断定 | 曖昧さを記載 | 質問と感度も説明 |
+   | 除外事項 | 記載なし | 主な除外を列挙 | 境界と影響を明確化 |
+   | 行動可能性 | 再現不能 | 概ね追跡可能 | 第三者が更新・反証可能 |
+
+   </ConsoleStep>
+
+3. ### 判定を集約する
+
+   <Command title="Judge結果を集約">
+
+   ```bash
+   aws-agent-eval aggregate-judge \
+     --run-dir runs/reliability-lab \
+     --input runs/reliability-lab/judge/judgments.jsonl
+   ```
+
+   </Command>
+
+   各次元は中央値、semantic passは多数決、critical concernは1回でも指摘があれば保持します。
+
+4. ### Gold setで校正する
+
+   人間2名が合意した例を用意し、Judgeのfalse passを優先して調べます。数値は正しいが仮定不明、曖昧さを勝手に補完、長いが再計算不能、といった境界例を入れます。
+
+</Steps>
+
+<Aside type="danger" title="Judgeはゲートを上書きしない">
+  決定的trialが不合格なら、Judgeが3回すべてpassでも総合合格にはしません。Judgeの流暢さで客観的失敗を消さないためです。
+</Aside>
+
+<ExpectedResult>
+
+Judgeのprovider/model/version、promptとschemaのdigest、推論設定、反復数、gold set一致率、生JSONL、集約結果がrun evidenceとして残ります。
+
+</ExpectedResult>
+
+<Checkpoint>
+
+モデルを変更したJudgeは新しいprofileとして扱います。過去のJudge結果と混ぜず、再校正してから本測定に使います。
+
+</Checkpoint>

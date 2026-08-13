@@ -1,0 +1,106 @@
+---
+title: 7. Live pilotを安全に行う
+description: AWSリソースを作らず、1ケース1回から実Agentの評価へ進みます。
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import ConsoleStep from '../../components/ConsoleStep.astro';
+import Command from '../../components/Command.astro';
+import ExpectedResult from '../../components/ExpectedResult.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="15–30分" level="発展" credentials="Agent CLI認証のみ" cost="推論費用あり" />
+
+ここから先は任意です。AWSアカウントやAWS profileは不要ですが、選んだAgent CLI自体の利用認証と推論費用が発生し得ます。Mockまでの結果を確認してから進みます。
+
+<Aside type="caution" title="止まって確認">
+  コマンドはAWSリソースを作成・更新・削除しません。Agentのtool allowlistとsandboxを確認し、デプロイ可能なAWS認証情報を渡さないでください。
+</Aside>
+
+<Steps>
+
+1. ### 公開assetを匿名取得する
+
+   <Command title="AWS公式assetを取得" prompt="PUBLIC HTTPS">
+
+   ```bash
+   aws-agent-eval fetch-assets \
+     --dataset datasets/aws-official-solutions-v1 \
+     --cache-dir asset-cache
+   ```
+
+   </Command>
+
+   <ExpectedResult>
+
+   `assets.lock.json`へURL、SHA-256、ETag、Last-Modified、取得日時が記録されます。AWS profileを設定していなくても成功します。
+
+   </ExpectedResult>
+
+2. ### Agent profileの前提を確認する
+
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="Codex profileを検査">
+
+       ```bash
+       aws-agent-eval check-prerequisites \
+         --profile config/profiles/codex.json
+       ```
+
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="Claude Code profileを検査">
+
+       ```bash
+       aws-agent-eval check-prerequisites \
+         --profile config/profiles/claude-code.json
+       ```
+
+       </Command>
+     </TabItem>
+   </Tabs>
+
+3. ### 1ケース・1回だけpilotする
+
+   <Command title="Live pilot（Codexの例）" prompt="LIVE / READ ONLY">
+
+   ```bash
+   aws-agent-eval experiment \
+     --dataset datasets/aws-official-solutions-v1 \
+     --profile config/profiles/codex.json \
+     --asset-cache asset-cache \
+     --case official-instance-scheduler-small \
+     --repetitions 1 \
+     --run-dir runs/pilot-official
+
+   aws-agent-eval report --run-dir runs/pilot-official
+   ```
+
+   </Command>
+
+4. ### 証跡と失敗分類を確認する
+
+   <ConsoleStep title="本測定へ進む前にレビューする" label="GATE">
+
+   OS、CLI/model/plugin version、dataset/profile/asset digest、所要時間、推論費用、tool呼び出し、失敗分類を記録します。pilotの問題を解消する前に反復数を増やしません。
+
+   </ConsoleStep>
+
+</Steps>
+
+<Checkpoint>
+
+- [ ] 変更権限を持つAWS認証を渡していない
+- [ ] 1ケース1回から始めた
+- [ ] oracleとcost pageがAgent workspaceへ入っていない
+- [ ] timeout、turn上限、費用を確認した
+- [ ] transcript共有前に秘密情報を検査した
+
+</Checkpoint>
+
+<Aside type="note" title="Pricing MCPは別実験">
+  Pricing MCPを試す場合だけ`*-pricing-mcp.json`を選び、一時認証と`pricing:*`に限定します。標準profileの結果と同じrunへ混ぜません。
+</Aside>

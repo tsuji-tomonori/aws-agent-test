@@ -1,0 +1,65 @@
+---
+title: AWS Agent Evaluation Workshop
+description: LLMエージェントを「一度動いた」ではなく、再現可能な実験として評価するハンズオン
+template: splash
+hero:
+  tagline: LLMエージェントを「一度動いた」で判断しない。AWSコスト見積もりを題材に、決定的ゲート・反復信頼性・LLM Judgeを組み合わせる評価設計を手を動かして学びます。
+  actions:
+    - text: ハンズオンを始める
+      link: /aws-agent-test/00-getting-started/
+      icon: right-arrow
+    - text: GitHubを見る
+      link: https://github.com/tsuji-tomonori/aws-agent-test
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid, Badge } from '@astrojs/starlight/components';
+import TaskMeta from '../../components/TaskMeta.astro';
+import Checkpoint from '../../components/Checkpoint.astro';
+
+<TaskMeta time="90–120分" level="入門" credentials="標準経路は不要" cost="$0から" />
+
+## このWorkshopで作るもの
+
+一つのプロンプトを試すだけではありません。評価対象を固定し、独立したtrialを繰り返し、**失敗してはいけない条件**と**説明品質**を分けて測る、小さな評価パイプラインを完成させます。
+
+<div class="module-path" aria-label="Workshopの流れ">
+  <div><span>01</span><strong>評価系を定義</strong></div>
+  <div><span>02</span><strong>Mockで配線</strong></div>
+  <div><span>03</span><strong>反復して測定</strong></div>
+  <div><span>04</span><strong>安全にLive化</strong></div>
+</div>
+
+<CardGrid>
+  <Card title="決定的ゲート" icon="approve-check-circle">
+    Schema、必須サービス、算術、根拠URLなど、コードで判定すべき条件をLLMから切り離します。
+  </Card>
+  <Card title="反復信頼性" icon="random">
+    success rate、Wilson 95%信頼区間、pass@k、pass^kを使い、一度の成功と安定動作を区別します。
+  </Card>
+  <Card title="LLM Judge" icon="comment-alt">
+    仮定、不確実性、除外事項、行動可能性だけを匿名・反復判定し、客観的な失敗を上書きさせません。
+  </Card>
+  <Card title="安全な実験境界" icon="shield-check">
+    oracleの漏洩、不要なAWS認証、デプロイ権限、無制限な試行コストを設計で防ぎます。
+  </Card>
+</CardGrid>
+
+## 学習ゴール
+
+完了時には、次の判断を自分の言葉で説明できるようになります。
+
+- なぜ「モデル」ではなく、model + CLI + tools + prompt + permissions + dataset を評価するのか
+- なぜcritical failureを平均スコアで相殺してはいけないのか
+- なぜpass@kだけでなくpass^kを見るのか
+- どの判定を決定的コードへ置き、どの判定をLLM Judgeへ残すのか
+- live評価を始める前に、何をMockと1回のpilotで確かめるのか
+
+<Checkpoint title="安全に進めるための前提">
+
+このWorkshopの標準ルートはAWSリソースを作成しません。AWS認証情報も不要です。Live pilotは利用中のAgent CLI自体の認証と推論費用が発生し得るため、該当ページで明示的に分岐します。
+
+</Checkpoint>
+
+<Badge text="START HERE" variant="tip" /> **準備ができたら「環境を準備する」へ進みます。**
