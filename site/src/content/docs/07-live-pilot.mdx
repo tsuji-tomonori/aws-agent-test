@@ -1,106 +1,199 @@
 ---
-title: 7. Live pilotを安全に行う
-description: AWSリソースを作らず、1ケース1回から実Agentの評価へ進みます。
+title: 7. LLM Judgeを作る
+description: 意味品質だけを評価するrubricを作り、匿名化・反復・gold setでJudgeを校正します。
 ---
 
-import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import { Steps, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15–30分" level="発展" credentials="Agent CLI認証のみ" cost="推論費用あり" />
+<TaskMeta time="30分" level="発展" credentials="Judge用Agent認証" cost="3判定 × 対象回答" />
 
-ここから先は任意です。AWSアカウントやAWS profileは不要ですが、選んだAgent CLI自体の利用認証と推論費用が発生し得ます。Mockまでの結果を確認してから進みます。
-
-<Aside type="caution" title="止まって確認">
-  コマンドはAWSリソースを作成・更新・削除しません。Agentのtool allowlistとsandboxを確認し、デプロイ可能なAWS認証情報を渡さないでください。
-</Aside>
+LLM Judgeは、数値の正誤を雰囲気で採点するためのものではありません。決定的ゲートを通った回答だけを対象に、コードでは決めにくい説明品質を4次元で評価します。
 
 <Steps>
 
-1. ### 公開assetを匿名取得する
+1. ### Judgeのrubricを作る
 
-   <Command title="AWS公式assetを取得" prompt="PUBLIC HTTPS">
+   `workshop/manual/prompts/judge-v1.md`を作ります。
+
+   ```markdown
+   # Semantic quality judge
+
+   AWSコスト見積もりの説明品質だけを評価する。
+   数値・Schema・必須サービスは別のコードで検査済みであり、ここでは再採点しない。
+   回答を作ったmodelやprofileを推測せず、長さを品質として評価しない。
+
+   次の4次元を1〜5で採点する。
+   1. assumption_clarity: 仮定が明示され、費用への影響と結び付いている
+   2. uncertainty_handling: 曖昧さを認識し、必要なら質問している
+   3. exclusion_clarity: 除外した費用と境界が理解できる
+   4. actionability: 第三者が再計算・反証・更新できる
+
+   全次元3以上かつcritical concernがない場合だけsemantic_pass=trueにする。
+   `judge-input.json`と`repeat.txt`を読み、item IDとrepeat番号を出力へ写す。
+   `judge-output.schema.json`に従うJSONだけを返す。
+   ```
+
+2. ### Judge出力のSchemaを用意する
+
+   <Command title="Judge契約を準備">
 
    ```bash
-   aws-agent-eval fetch-assets \
-     --dataset datasets/aws-official-solutions-v1 \
-     --cache-dir asset-cache
+   cp schemas/judge-output.schema.json \
+     workshop/manual/schemas/judge-output.schema.json
+   python -m json.tool \
+     workshop/manual/schemas/judge-output.schema.json > /dev/null
    ```
 
    </Command>
 
-   <ExpectedResult>
+3. ### 回答を匿名化する
 
-   `assets.lock.json`へURL、SHA-256、ETag、Last-Modified、取得日時が記録されます。AWS profileを設定していなくても成功します。
+   Judge workspaceには、case ID、model名、Agent CLI、MCP有無、成功率を入れません。採点対象の回答とrubric versionだけを`judge-input.json`へ入れます。
 
-   </ExpectedResult>
+   ```json
+   {
+     "judge_item_id": "item-7f3a",
+     "rubric_version": "judge-v1",
+     "answer": {
+       "status": "completed",
+       "service_estimates": [],
+       "assumptions": [],
+       "excluded_costs": [],
+       "confidence": 0.0,
+       "summary": "ここへ対象回答を機械的にコピーする"
+     }
+   }
+   ```
 
-2. ### Agent profileの前提を確認する
+   <Aside type="caution" title="選択バイアスを入れない">
+     人が「良さそうな回答」だけをJudgeへ渡してはいけません。決定的ゲートを通った全回答を、元の順序を隠して一意なitem IDへ変換します。
+   </Aside>
 
-   <Tabs>
-     <TabItem label="Codex">
-       <Command title="Codex profileを検査">
+4. ### 同じ回答を3回判定する
 
-       ```bash
-       aws-agent-eval check-prerequisites \
-         --profile config/profiles/codex.json
-       ```
+   Judge用modelを固定して3個の新規workspaceで実行します。対象AgentとJudgeを同一modelにする場合も、その事実と理由を記録します。
 
-       </Command>
-     </TabItem>
-     <TabItem label="Claude Code">
-       <Command title="Claude Code profileを検査">
-
-       ```bash
-       aws-agent-eval check-prerequisites \
-         --profile config/profiles/claude-code.json
-       ```
-
-       </Command>
-     </TabItem>
-   </Tabs>
-
-3. ### 1ケース・1回だけpilotする
-
-   <Command title="Live pilot（Codexの例）" prompt="LIVE / READ ONLY">
+   <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
 
    ```bash
-   aws-agent-eval experiment \
-     --dataset datasets/aws-official-solutions-v1 \
-     --profile config/profiles/codex.json \
-     --asset-cache asset-cache \
-     --case official-instance-scheduler-small \
-     --repetitions 1 \
-     --run-dir runs/pilot-official
+   export JUDGE_MODEL="使用するmodel名"
+   item=workshop/manual/runs/judge/item-7f3a
 
-   aws-agent-eval report --run-dir runs/pilot-official
+   for repeat in 1 2 3; do
+     judgment="$item/repeat-$repeat"
+     mkdir -p "$judgment"
+     cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
+     cp workshop/manual/schemas/judge-output.schema.json \
+       "$judgment/judge-output.schema.json"
+     cp "$item/judge-input.json" "$judgment/judge-input.json"
+     echo "$repeat" > "$judgment/repeat.txt"
+
+     (
+       cd "$judgment"
+       codex exec --ephemeral --sandbox read-only \
+         --model "$JUDGE_MODEL" \
+         --output-schema judge-output.schema.json \
+         --output-last-message judgment.json \
+         - < TASK.md
+     )
+   done
    ```
 
    </Command>
 
-4. ### 証跡と失敗分類を確認する
+   Claude CodeをJudgeにする場合も、第5章と同じく3個の新規processを使い、各結果を別ファイルへ保存します。
 
-   <ConsoleStep title="本測定へ進む前にレビューする" label="GATE">
+5. ### 3回の結果を集約する
 
-   OS、CLI/model/plugin version、dataset/profile/asset digest、所要時間、推論費用、tool呼び出し、失敗分類を記録します。pilotの問題を解消する前に反復数を増やしません。
+   <ConsoleStep title="集約規則を実行前に固定" label="AGGREGATION">
+
+   | 出力 | 集約方法 |
+   |---|---|
+   | 4つのscore | 各次元の中央値 |
+   | `semantic_pass` | 3回中2回以上の多数決 |
+   | `critical_concern` | 1回でもあれば保持 |
+   | 総合合格 | `deterministic_pass AND semantic_pass` |
 
    </ConsoleStep>
 
+   `workshop/manual/scripts/aggregate_judge.py`を作り、規則をコードへ固定します。
+
+   ```python
+   import json
+   import sys
+   from pathlib import Path
+   from statistics import median
+
+   items = [
+       json.loads(path.read_text(encoding="utf-8"))
+       for path in sorted(Path(sys.argv[1]).glob("repeat-*/judgment.json"))
+   ]
+   dimensions = [
+       "assumption_clarity",
+       "uncertainty_handling",
+       "exclusion_clarity",
+       "actionability",
+   ]
+   concerns = [item["critical_concern"] for item in items if item["critical_concern"]]
+   result = {
+       "repeats": len(items),
+       "median_scores": {
+           name: median(item["scores"][name] for item in items)
+           for name in dimensions
+       },
+       "semantic_pass": sum(item["semantic_pass"] for item in items) >= 2,
+       "critical_concerns": concerns,
+   }
+   print(json.dumps(result, ensure_ascii=False, indent=2))
+   ```
+
+   <Command title="Judge結果を集約">
+
+   ```bash
+   python workshop/manual/scripts/aggregate_judge.py \
+     workshop/manual/runs/judge/item-7f3a \
+     > workshop/manual/runs/judge/item-7f3a/summary.json
+   ```
+
+   </Command>
+
+   集約後も3個の生`judgment.json`を残します。不一致が大きい回答はJudge不安定として別途レビューします。
+
+6. ### Gold setで校正する
+
+   人間2名が合意した最低6回答を用意します。次の境界例を含め、Judgeのfalse passを優先して調べます。
+
+   - 数値は正しいが、仮定を明記しない
+   - 情報不足を勝手に補完している
+   - 長いが、第三者が式を再計算できない
+   - 簡潔だが、仮定・除外・根拠が十分に追跡できる
+
+   rubric、Judge model、prompt、推論設定のいずれかを変えたら、gold setを再実行します。
+
 </Steps>
+
+<Aside type="danger" title="Judgeは客観的失敗を救済しない">
+  決定的ゲートが不合格なら、Judgeが3回とも高得点でも総合不合格です。Judgeにはoracleの金額を判定させず、説明品質だけを担当させます。
+</Aside>
+
+<ExpectedResult>
+
+匿名化されたJudge入力、3回の生判定、固定した集約規則、gold set校正結果が残り、Judge自身の非決定性も監査できます。
+
+</ExpectedResult>
 
 <Checkpoint>
 
-- [ ] 変更権限を持つAWS認証を渡していない
-- [ ] 1ケース1回から始めた
-- [ ] oracleとcost pageがAgent workspaceへ入っていない
-- [ ] timeout、turn上限、費用を確認した
-- [ ] transcript共有前に秘密情報を検査した
+- [ ] Judgeの責務を4つの意味品質へ限定した
+- [ ] model・profile情報を匿名化した
+- [ ] 同じ回答を独立に3回判定した
+- [ ] 集約規則を判定前に固定した
+- [ ] gold setでfalse passを確認した
+- [ ] 決定的失敗をJudgeで上書きしていない
 
 </Checkpoint>
-
-<Aside type="note" title="Pricing MCPは別実験">
-  Pricing MCPを試す場合だけ`*-pricing-mcp.json`を選び、一時認証と`pricing:*`に限定します。標準profileの結果と同じrunへ混ぜません。
-</Aside>

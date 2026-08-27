@@ -1,6 +1,6 @@
 ---
-title: 8. 評価計画を完成させる
-description: 学んだ設計を一枚の実験計画へまとめ、再現可能な測定へつなげます。
+title: 8. 比較実験を完成させる
+description: ケース、prompt、MCP、反復、Gate、Judgeを一つの再現可能な比較実験へまとめます。
 ---
 
 import { Steps, Aside } from '@astrojs/starlight/components';
@@ -9,67 +9,103 @@ import ConsoleStep from '../../components/ConsoleStep.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15分" level="中級" credentials="不要" cost="$0" />
+<TaskMeta time="20分" level="中級" credentials="選択した実験条件による" cost="計画したtrial・Judge分" />
 
-最後に、チームの実験を始める前のレビュー資料を作ります。以下をコピーし、対象Agentに合わせて埋めてください。
+最後に「何となくMCPありの方が良かった」ではなく、変更点を一つに絞って比較できる実験計画へまとめます。
 
 <Steps>
 
-1. ### 評価の問いを一文にする
+1. ### 比較する一要因を選ぶ
 
-   <ConsoleStep title="評価対象と成功条件" label="TEMPLATE">
+   最初の比較では、prompt、model、case、反復数を固定し、MCPの有無だけを変えます。
 
-   **対象:** `[model + CLI + tools + prompt + permissions]` が、`[dataset/version]` の `[case種別]` を、`[価格取得モード]` で実行する。
+   <ConsoleStep title="比較マトリクス" label="EXPERIMENT">
 
-   **成功:** critical failureなし、trial success rate `[目標]`、Wilson 95% CIを併記、pass^`[k]` ≥ `[目標]`、Judgeの4次元がすべて3以上。
+   | 条件 | Prompt | Cases | Repetitions | Tool |
+   |---|---|---|---:|---|
+   | A: no-mcp | agent-v1 | 同じ2ケース | 5 | なし |
+   | B: pricing-mcp | agent-v1 | 同じ2ケース | 5 | AWS Pricing MCP |
 
    </ConsoleStep>
 
-2. ### 変更しない条件を凍結する
+   no-mcpで価格が必要なケースを解かせる場合は、事前に固定した公開price snapshotをAgent入力へ追加します。MCPありだけが価格情報を持つ比較にすると、tool品質ではなく情報有無の差を測ることになります。
 
-   - profile fileとpromptのdigest
-   - Agent CLI、model、plugin/skill version
-   - dataset ID/versionとcase集合
-   - public asset lock digestと価格基準日
-   - timeout、最大turn、repetitions、run命名規則
+2. ### 実験順序と中止条件を固定する
 
-3. ### 実験順序を宣言する
+   1. ケースとoracleを人がレビューする
+   2. no-mcpで1ケース1回のpilotを行う
+   3. pricing-mcpで1ケース1回のpilotを行う
+   4. tool、出力、費用、秘密情報をレビューする
+   5. 各ケース5回の本測定を行う
+   6. 決定的ゲートを全trialへ適用する
+   7. Gate通過回答を匿名化し、Judgeを3回ずつ実行する
+   8. 条件別に指標と失敗taxonomyを比較する
 
-   1. mock-goodで配線を確認
-   2. mock-flakyで集計を確認
-   3. 1ケース1回のLive pilot
-   4. 失敗taxonomyと費用をレビュー
-   5. 条件を凍結して5回以上の本測定
-   6. 同一条件で再測定し、変更前後を別runで比較
+   秘密情報、予期しない書き込み、AWS変更操作、費用上限超過、oracle漏洩、workspace外出力が一つでも見つかったら停止します。
 
-4. ### 中止条件を決める
+3. ### 証跡の構成を揃える
 
-   秘密情報の出力、予期しない外部書き込み、AWS変更操作、費用上限超過、oracle漏洩、workspace外への出力が見つかったら実験を停止します。
+   ```text
+   runs/<experiment-id>/
+   ├── experiment.json
+   ├── cases/<case-id>/
+   │   ├── trial-01/
+   │   │   ├── TASK.md
+   │   │   ├── answer.json
+   │   │   ├── events.jsonl
+   │   │   ├── exit-code.txt
+   │   │   └── verdict.json
+   │   └── summary.json
+   ├── judge/<anonymous-item-id>/
+   │   ├── repeat-1/judgment.json
+   │   ├── repeat-2/judgment.json
+   │   └── repeat-3/judgment.json
+   └── report.md
+   ```
 
-5. ### 独立再現を依頼する
+   Agent認証、AWS資格情報、秘密を含むtranscript、MCPの一時ファイルは成果物へ含めません。
 
-   別のメンバーが口頭補助なしでmock runと認証不要pilotを完了できるか確認します。環境差分と迷った箇所も実験結果として残します。
+4. ### レポートに判断を書き残す
+
+   条件ごとに次を記載します。
+
+   - trial success rateとWilson 95% CI
+   - caseごとのpass@kとpass^k
+   - critical failureの件数とtaxonomy
+   - Judge 4次元の中央値と判定不一致数
+   - model、CLI、prompt、MCP package、Schema、caseのversionまたはdigest
+   - 推論時間、token、概算費用、tool call
+   - 改善対象をprompt／case／tool／modelのどこへ置くか
+
+5. ### 次の変更を一つだけ決める
+
+   JSON違反ならSchemaとprompt、価格filterの誤りならMCP利用手順、情報不足の捏造ならケースと判断規則、説明品質だけの問題ならrubricを見直します。複数を同時に変えず、新しい`experiment_id`で再測定します。
+
+6. ### 別の人に再現してもらう
+
+   口頭補助なしで、ケース作成、MCP接続、1 trial、5回反復、決定的採点、Judge判定まで再現できるか確認します。迷った箇所は、評価対象の問題ではなくハンズオンの不備として直します。
 
 </Steps>
 
 <ExpectedResult title="Workshop Complete">
 
-一回の成功画面ではなく、入力・実行条件・判定・証跡・安全境界がそろった評価計画が完成しました。次の実験結果は「再実行でき、失敗理由を追跡できる」状態です。
+専用CLIの成功画面ではなく、テストケース、prompt、MCP設定、独立trial、決定的判定、Judge判定、比較レポートを自分で説明・変更できる状態になっています。
 
 </ExpectedResult>
 
 <Checkpoint title="最終レビュー">
 
-- [ ] 評価対象をモデル名だけで表現していない
-- [ ] Agentに見せる情報とoracleを分離した
-- [ ] critical gate、反復指標、Judgeの責務を分けた
-- [ ] pass^kとWilson CIを主要レポートに含める
-- [ ] Liveは1ケース1回から始める
-- [ ] AWS変更権限を評価経路へ持ち込まない
-- [ ] profile/dataset/tool変更後は別runとして再測定する
+- [ ] 公開入力と非公開oracleを分離した
+- [ ] promptとJSON出力契約を自分で作った
+- [ ] MCPを最小権限で設定し、接続を確認した
+- [ ] 新しい会話で複数回実行した
+- [ ] 決定的ゲートとLLM Judgeを分離した
+- [ ] Judgeも反復・校正した
+- [ ] 比較で変更した要因が一つだけである
+- [ ] 第三者が同じ手順を再実行できる
 
 </Checkpoint>
 
-<Aside type="tip" title="次の改善はデータから決める">
-  失敗がSchemaならparserやprompt、サービス漏れならtool/入力、価格変動ならsource固定、説明品質ならrubricというように、taxonomyから修正対象を選びます。
+<Aside type="tip" title="評価基盤へ自動化するのは理解した後">
+  ここで作ったcase、prompt、checker、反復、Judgeの責務を理解してから、CIや既存評価frameworkへ移植します。自動化は設計判断を隠すためではなく、同じ判断を再現するために使います。
 </Aside>

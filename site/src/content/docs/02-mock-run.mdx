@@ -1,6 +1,6 @@
 ---
-title: 2. Mockで配線を試す
-description: 外部LLMを呼ぶ前に、成功・失敗・集計の配線を再現可能なMockで確認します。
+title: 2. テストケースを作る
+description: Agentへ見せる問題と、評価側だけが持つoracleを分離して2種類のケースを作ります。
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
@@ -10,76 +10,157 @@ import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15分" credentials="不要" cost="$0" />
+<TaskMeta time="25分" level="中級" credentials="不要" cost="$0" />
 
-Mockは「簡単な代用品」ではなく、runner・workspace隔離・evaluator・reporterを決定的に検査するための基準器です。
+同じIaCでも、使用量が十分なケースと不足したケースでは正解が違います。この章では「計算する」と「質問する」をそれぞれ検査できる2ケースを作ります。
 
 <Steps>
 
-1. ### 正常系を3回実行する
+1. ### ケースを4要素へ分ける
 
-   <Command title="Mock実験を開始">
+   <ConsoleStep title="ケースの境界" label="DESIGN">
 
-   ```bash
-   aws-agent-eval experiment \
-     --dataset datasets/aws-official-solutions-v1 \
-     --profile config/profiles/mock.json \
-     --repetitions 3 \
-     --run-dir runs/onboarding-mock
-   ```
-
-   </Command>
-
-2. ### レポートを生成する
-
-   <Command title="結果を集計">
-
-   ```bash
-   aws-agent-eval report --run-dir runs/onboarding-mock
-   ```
-
-   </Command>
-
-   <ExpectedResult>
-
-   3ケース × 3回のtrialが保存され、`runs/onboarding-mock/report.md`と`results.json`が生成されます。公式3ケースの`pass^3`が満たされます。
-
-   </ExpectedResult>
-
-3. ### trial workspaceを観察する
-
-   <ConsoleStep title="Agentに見えるもの／見えないものを比較する">
-
-   trial配下には`TASK.md`、`input/`、`agent-output.schema.json`、出力証跡だけが置かれます。元の`case.json`にあるexpected、oracle、価格レンジ、cost page URLはコピーされません。
+   | 要素 | Agentに見せる | 内容 |
+   |---|---:|---|
+   | `case-public.json` | はい | task、region、usage、価格条件 |
+   | `input/` | はい | CloudFormationなどの対象ファイル |
+   | `agent-output.schema.json` | はい | 回答のJSON契約 |
+   | `oracle.json` | **いいえ** | expected、許容範囲、必須項目 |
 
    </ConsoleStep>
 
-4. ### FlakyなAgentを体験する
+2. ### 十分な入力を持つケースを作る
 
-   <Command title="意図的に不安定なMockを実行">
+   先にケース用ディレクトリを作ります。
 
    ```bash
-   aws-agent-eval experiment \
-     --dataset datasets/aws-cost-v1 \
-     --profile config/profiles/mock-flaky.json \
-     --repetitions 5 \
-     --run-dir runs/flaky-demo
-   aws-agent-eval report --run-dir runs/flaky-demo
+   mkdir -p workshop/manual/cases/cfn-static-site/input
+   ```
+
+   `workshop/manual/cases/cfn-static-site/case-public.json`を作ります。
+
+   ```json
+   {
+     "id": "cfn-static-site",
+     "task": "CloudFormationを読み、Free Tierを使わない月額を見積もる",
+     "region": "us-east-1",
+     "currency": "USD",
+     "input_files": ["input/template.yaml"],
+     "usage_profile": {
+       "s3_standard_storage_gb_month": 100,
+       "s3_put_requests": 100000,
+       "s3_get_requests": 5000000,
+       "cloudfront_data_transfer_out_gb_us_canada_mexico": 2048,
+       "cloudfront_https_requests": 20000000
+     },
+     "pricing_basis": {
+       "purchase_option": "public on-demand rates",
+       "free_tier": false,
+       "discounts": false,
+       "tax": false
+     }
+   }
+   ```
+
+   教材のCloudFormationを公開入力としてコピーします。
+
+   <Command title="入力ファイルを配置">
+
+   ```bash
+   mkdir -p workshop/manual/cases/cfn-static-site/input
+   cp datasets/aws-cost-v1/cases/cfn-static-site/input/template.yaml \
+     workshop/manual/cases/cfn-static-site/input/template.yaml
    ```
 
    </Command>
 
-   <Aside type="tip" title="観察ポイント">
-     同じケースでも成功と失敗が混ざると、pass@5は高くてもpass^5は低くなります。「何度か試せば成功」と「毎回任せられる」は別の性質です。
-   </Aside>
+3. ### 評価側だけのoracleを作る
+
+   同じケースの`oracle.json`を作ります。このファイルはtrial workspaceへコピーしません。
+
+   ```json
+   {
+     "expected_status": "completed",
+     "required_services": ["Amazon S3", "Amazon CloudFront"],
+     "monthly_total_usd": {"minimum": 196.83, "maximum": 200.93},
+     "required_source_urls": [
+       "https://aws.amazon.com/s3/pricing/",
+       "https://aws.amazon.com/cloudfront/pricing/"
+     ]
+   }
+   ```
+
+   許容範囲は「Agentに合わせて後から広げる」のではなく、一次情報から人が再計算して実行前に固定します。
+
+4. ### 情報不足ケースを作る
+
+   <Tabs>
+     <TabItem label="公開入力">
+       `cfn-missing-usage`ではusageを空にします。課金対象はIaCから分かりますが、リクエスト数や実行時間がないため月額は確定できません。
+
+       ```json
+       {
+         "id": "cfn-missing-usage",
+         "task": "防御可能な月額を算出できるか判断し、不足情報は推測せず質問する",
+         "region": "us-east-1",
+         "currency": "USD",
+         "input_files": ["input/template.yaml"],
+         "usage_profile": {}
+       }
+       ```
+     </TabItem>
+     <TabItem label="非公開oracle">
+       ```json
+       {
+         "expected_status": "needs_clarification",
+         "required_missing_input_ids": [
+           "monthly_api_requests",
+           "monthly_lambda_requests",
+           "lambda_average_duration_ms",
+           "monthly_dynamodb_write_request_units",
+           "monthly_dynamodb_read_request_units"
+         ]
+       }
+       ```
+     </TabItem>
+   </Tabs>
+
+   入力は`datasets/aws-cost-v1/cases/cfn-missing-usage/input/template.yaml`からコピーします。
+
+   <Command title="情報不足ケースの入力を配置">
+
+   ```bash
+   mkdir -p workshop/manual/cases/cfn-missing-usage/input
+   cp datasets/aws-cost-v1/cases/cfn-missing-usage/input/template.yaml \
+     workshop/manual/cases/cfn-missing-usage/input/template.yaml
+   ```
+
+   </Command>
+
+5. ### ケース表で偏りを確認する
+
+   | ケース | 入力状態 | 正しい振る舞い | 主な失敗 |
+   |---|---|---|---|
+   | static-site | 十分 | 2サービスを計算 | サービス漏れ、算術、根拠 |
+   | missing-usage | 不足 | 質問して停止 | 勝手な使用量、偽の精度 |
 
 </Steps>
 
+<Aside type="danger" title="oracle漏洩は測定を無効にする">
+  oracleの金額、許容範囲、expected status、正解URLを`TASK.md`やtrial workspaceへ入れないでください。公開ページにある金額でも、holdout評価で回答前に渡せば正解の再現テストになります。
+</Aside>
+
+<ExpectedResult>
+
+各ケースに公開入力と非公開oracleがあり、「計算能力」と「推測せず止まる能力」を別々に検査できます。
+
+</ExpectedResult>
+
 <Checkpoint>
 
-- [ ] 正常Mockでrunnerからreportまでの配線を確認した
-- [ ] oracleがtrial workspaceへ入らないことを確認した
-- [ ] flaky profileでpass@kとpass^kの違いを観察した
-- [ ] 一回の失敗を「運が悪い」で片付けない理由を説明できる
+- [ ] 公開入力とoracleを別ファイルにした
+- [ ] oracleを実行前に固定した
+- [ ] 成功ケースだけでなく情報不足ケースも作った
+- [ ] ケースごとの失敗理由を言語化した
 
 </Checkpoint>

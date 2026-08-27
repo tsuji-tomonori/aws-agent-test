@@ -1,6 +1,6 @@
 ---
-title: 4. Profileを読み解く
-description: Agent CLI、prompt、parser、権限境界を一つの実験条件として固定します。
+title: 4. MCPを設定する
+description: AWS Pricing MCPをAgent CLIへ接続し、MCPなし／ありを別の実験条件として記録します。
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
@@ -10,59 +10,124 @@ import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="10分" level="中級" credentials="標準は不要" cost="$0" />
+<TaskMeta time="20分" level="中級" credentials="短期AWS認証（pricingのみ）" cost="Pricing APIは無料／推論費用あり" />
 
-Profileはモデル名の別名ではなく、再現に必要な実行条件の束です。`config/profiles/`にはMock、Codex、Claude Code、Pricing MCPを分離した設定があります。
+この章は任意です。MCPを使わない`no-mcp`実験と、AWS Pricing MCPを使う`pricing-mcp`実験は別条件です。接続前に、MCPなしの条件名とpromptを保存してください。
+
+<Aside type="danger" title="デプロイ権限を渡さない">
+  使用するのは[AWS Pricing MCP Server](https://awslabs.github.io/mcp/servers/aws-pricing-mcp-server)です。AWS API MCPやデプロイ系toolは追加せず、専用の短期profileへ`pricing:*`だけを付与します。
+</Aside>
 
 <Steps>
 
-1. ### Profile間の差分を見る
+1. ### IAM境界を確認する
 
-   <Command title="Profile一覧">
+   評価専用roleまたはpermission setには、価格参照以外を含めません。
 
-   ```bash
-   ls config/profiles
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "pricing:*",
+         "Resource": "*"
+       }
+     ]
+   }
    ```
 
-   </Command>
+   `AWS_PROFILE=agent-pricing-eval`のように用途が分かる名前を使い、SSOなどの短期認証を開始します。
+
+2. ### MCP serverを登録する
+
+   事前に`uv`とPython 3.10以降を用意します。AWS公式手順は`uvx awslabs.aws-pricing-mcp-server@latest`を使用します。
 
    <Tabs>
-     <TabItem label="mock.json">外部CLIを呼ばず、CIと配線確認に使います。</TabItem>
-     <TabItem label="codex / claude-code">公開資料で解く標準Live profileです。AWS profileは不要です。</TabItem>
-     <TabItem label="*-pricing-mcp">AWS Pricing MCPを明示的に試す別profileです。短期認証と`pricing:*`だけを使います。</TabItem>
+     <TabItem label="Codex">
+       [CodexのMCP設定](https://developers.openai.com/codex/mcp)に従い、stdio serverを登録します。
+
+       <Command title="CodexへAWS Pricing MCPを追加" prompt="LOCAL MCP">
+
+       ```bash
+       mkdir -p workshop/manual/runs/mcp-output
+       codex mcp add aws-pricing \
+         --env AWS_PROFILE=agent-pricing-eval \
+         --env AWS_REGION=us-east-1 \
+         --env FASTMCP_LOG_LEVEL=ERROR \
+         --env AWS_PRICING_MCP_OUTPUT_DIR="$(pwd)/workshop/manual/runs/mcp-output" \
+         -- uvx awslabs.aws-pricing-mcp-server@latest
+
+       codex mcp list
+       ```
+
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       [Claude CodeのMCP設定](https://docs.anthropic.com/en/docs/claude-code/mcp)では、server引数を`--`の後ろへ置きます。
+
+       <Command title="Claude CodeへAWS Pricing MCPを追加" prompt="LOCAL MCP">
+
+       ```bash
+       mkdir -p workshop/manual/runs/mcp-output
+       claude mcp add --scope local --transport stdio \
+         --env AWS_PROFILE=agent-pricing-eval \
+         --env AWS_REGION=us-east-1 \
+         --env FASTMCP_LOG_LEVEL=ERROR \
+         --env AWS_PRICING_MCP_OUTPUT_DIR="$(pwd)/workshop/manual/runs/mcp-output" \
+         aws-pricing -- uvx awslabs.aws-pricing-mcp-server@latest
+
+       claude mcp list
+       ```
+
+       </Command>
+     </TabItem>
    </Tabs>
 
-2. ### 前提条件を機械確認する
+   WindowsネイティブではAWS公式手順に従い、server commandを`uvx --from awslabs.aws-pricing-mcp-server@latest awslabs.aws-pricing-mcp-server.exe`へ置き換えます。WSLではLinux側の例を使います。
 
-   <ConsoleStep title="選んだProfileだけを検査する">
+3. ### 接続とtoolを確認する
 
-   ```bash
-   aws-agent-eval check-prerequisites \
-     --profile config/profiles/codex.json
-   ```
+   Agent CLIを対話起動し、`/mcp`を開きます。`aws-pricing`がconnectedで、価格検索系toolだけが見えることを確認します。
 
-   このコマンドは、CLIの存在、設定した環境変数、実行前提を検査します。標準profileのためにAWS権限を追加してはいけません。
+   <ConsoleStep title="接続確認プロンプト" label="SMOKE TEST">
+
+   AWS Pricing MCPで利用可能なtool名を列挙してください。価格の検索やレポート生成はまだ実行しないでください。
 
    </ConsoleStep>
 
-3. ### 実験条件のdigestを残す
+   serverが起動できない場合は、`uvx`、短期認証の期限、`AWS_PROFILE`、`AWS_REGION`、`pricing:*`を確認します。CloudFormationやIAM変更権限を追加して解決しません。
 
-   model、Agent CLI version、plugin/skill version、profile file digest、dataset version、asset lock digest、価格取得モードをrun evidenceとして保存します。
+4. ### 実験条件を更新する
 
-4. ### 比較の単位を固定する
+   `experiment.json`を複製し、次だけ変更します。
 
-   prompt、tool、model、権限のどれか一つでも変更したら別profileとして測定します。改善後のrunを過去runへ上書きしません。
+   ```json
+   {
+     "experiment_id": "cost-estimation-prompt-v1-pricing-mcp",
+     "tool_mode": "pricing-mcp",
+     "mcp_server": "awslabs.aws-pricing-mcp-server@latest",
+     "aws_permission": "pricing:* only",
+     "aws_profile": "agent-pricing-eval"
+   }
+   ```
+
+   本測定では`@latest`のままにせず、解決したpackage versionと取得日を記録するか、確認済みversionへ固定します。
 
 </Steps>
 
-<ExpectedResult title="Profile設計の完成条件">
+<ExpectedResult>
 
-第三者がprofileと記録を見れば、「どのCLIが、どのpromptとtoolを使い、何へアクセスできたか」を再構成できます。
+`aws-pricing`が接続済みで、AWS変更系toolが存在しません。MCPなし／ありの実験条件が別IDで保存されています。
 
 </ExpectedResult>
 
 <Checkpoint>
 
-Pricing MCPの認証失敗を、CloudFormation・IAM・EC2・S3などの変更権限追加で解決しません。価格参照の実験とデプロイ可能な権限は分離します。
+- [ ] AWS Pricing MCPの公式serverだけを追加した
+- [ ] 短期認証と`pricing:*`だけを使った
+- [ ] `AWS_PRICING_MCP_OUTPUT_DIR`を実習配下へ限定した
+- [ ] `/mcp`で接続とtool一覧を確認した
+- [ ] no-mcpとpricing-mcpを別実験にした
 
 </Checkpoint>
