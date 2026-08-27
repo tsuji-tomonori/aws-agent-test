@@ -1,62 +1,62 @@
 ---
-title: コマンド早見表
-description: Workshopで使用する認証不要コマンドと任意のLiveコマンドを一覧できます。
+title: 成果物チェックリスト
+description: 手作り評価で作成するファイル、記録する条件、実行時の安全境界を一覧します。
 tableOfContents: false
 ---
 
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
-import Command from '../../../components/Command.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
 
 <Tabs>
-  <TabItem label="検証">
-    <Command title="Dataset validate">
-
-    ```bash
-    aws-agent-eval validate --dataset datasets/aws-cost-v1
-    aws-agent-eval validate --dataset datasets/aws-official-solutions-v1
-    ```
-
-    </Command>
+  <TabItem label="ケース">
+    - `case-public.json`: task、region、usage、pricing basis
+    - `input/`: Agentが調べるIaCや資料
+    - `oracle.json`: expected、許容範囲、必須ID。Agentへ見せない
+    - 正常系だけでなく、情報不足・拒否・境界ケースを含める
   </TabItem>
-  <TabItem label="Mock実験">
-    <Command title="Experiment + Report">
-
-    ```bash
-    aws-agent-eval experiment \
-      --dataset datasets/aws-official-solutions-v1 \
-      --profile config/profiles/mock.json \
-      --repetitions 3 \
-      --run-dir runs/onboarding-mock
-    aws-agent-eval report --run-dir runs/onboarding-mock
-    ```
-
-    </Command>
+  <TabItem label="実行条件">
+    - modelとAgent CLI version
+    - promptとoutput schemaのversionまたはdigest
+    - MCP server、package version、tool一覧
+    - sandbox、IAM、環境変数、timeout
+    - case集合、反復数、run ID
   </TabItem>
-  <TabItem label="Judge">
-    <Command title="Prepare + Aggregate">
-
-    ```bash
-    aws-agent-eval prepare-judge --run-dir runs/example --repeats 3
-    aws-agent-eval aggregate-judge \
-      --run-dir runs/example \
-      --input runs/example/judge/judgments.jsonl
-    ```
-
-    </Command>
+  <TabItem label="trial証跡">
+    - trialごとの独立workspace
+    - `TASK.md`、`answer.json`、raw event、exit code
+    - 決定的な`verdict.json`と失敗理由
+    - 失敗trialを含む全件
   </TabItem>
-  <TabItem label="公開asset">
-    <Command title="Anonymous HTTPS">
-
-    ```bash
-    aws-agent-eval fetch-assets \
-      --dataset datasets/aws-official-solutions-v1 \
-      --cache-dir asset-cache
-    ```
-
-    </Command>
+  <TabItem label="Judge証跡">
+    - 匿名化した`judge-input.json`
+    - Judge prompt、schema、model、設定
+    - 3回の生判定と固定した集約規則
+    - gold set、人間合意、false pass確認
   </TabItem>
 </Tabs>
 
-<Aside type="caution" title="認証境界">
-  `validate`、Mock、report、Judge batch準備にAWS認証は不要です。Live profileはAgent CLI認証、Pricing MCP profileは短期AWS認証と`pricing:*`を別途必要とします。
+## 直接実行の最小形
+
+```bash
+codex exec --ephemeral --sandbox read-only \
+  --output-schema agent-output.schema.json \
+  --output-last-message answer.json \
+  - < TASK.md
+```
+
+この1回を新しいworkspaceで繰り返し、外側のPython checkerへ`answer.json`と`oracle.json`を渡します。専用評価CLIは使いません。
+
+<Checkpoint title="実行前の30秒確認">
+
+- [ ] Agent workspaceにoracleがない
+- [ ] AWS変更権限がない
+- [ ] MCPの有無がexperiment IDと一致する
+- [ ] 前回sessionをresumeしない
+- [ ] 出力先、trial数、費用上限を決めた
+- [ ] 不合格をJudgeで上書きしない
+
+</Checkpoint>
+
+<Aside type="caution" title="保存しないもの">
+  AWSやAgentの資格情報、秘密を含むtranscript、生成された一時認証、MCP cache、個人のglobal設定ファイルはリポジトリへcommitしません。
 </Aside>

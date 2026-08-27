@@ -24,22 +24,22 @@ export default defineConfig({
           { label: 'Workshop Home', link: '/' },
           { label: '0. 環境を準備する', slug: '00-getting-started' },
         ]},
-        { label: '基礎編', items: [
-          { label: '1. 評価対象を定義する', slug: '01-evaluation-system' },
-          { label: '2. Mockで配線を試す', slug: '02-mock-run' },
-          { label: '3. ケースを設計する', slug: '03-dataset-design' },
+        { label: '設計編', items: [
+          { label: '1. 合否条件を設計する', slug: '01-evaluation-system' },
+          { label: '2. テストケースを作る', slug: '02-mock-run' },
+          { label: '3. プロンプトと出力を作る', slug: '03-dataset-design' },
         ]},
         { label: '実験編', items: [
-          { label: '4. Profileを読み解く', slug: '04-agent-profile' },
-          { label: '5. 反復実験を評価する', slug: '05-repeated-experiment' },
-          { label: '6. LLM Judgeを校正する', slug: '06-llm-judge' },
+          { label: '4. MCPを設定する', slug: '04-agent-profile' },
+          { label: '5. 1ケースを実行・採点する', slug: '05-repeated-experiment' },
+          { label: '6. 独立試行を繰り返す', slug: '06-llm-judge' },
         ]},
         { label: '実践編', items: [
-          { label: '7. Live pilotを安全に行う', slug: '07-live-pilot' },
-          { label: '8. 評価計画を完成させる', slug: '08-capstone' },
+          { label: '7. LLM Judgeを作る', slug: '07-live-pilot' },
+          { label: '8. 比較実験を完成させる', slug: '08-capstone' },
         ]},
         { label: '付録', items: [
-          { label: 'コマンド早見表', slug: 'reference/commands' },
+          { label: '成果物チェックリスト', slug: 'reference/commands' },
         ]},
       ],
       pagination: true,

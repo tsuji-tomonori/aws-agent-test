@@ -1,6 +1,6 @@
 ---
-title: 1. 評価対象を定義する
-description: モデル単体ではなく実行系全体を評価単位として固定します。
+title: 1. 合否条件を設計する
+description: Agentを動かす前に、評価対象、失敗条件、コードとJudgeの責務を決めます。
 ---
 
 import { Steps, Aside, Card, CardGrid } from '@astrojs/starlight/components';
@@ -9,59 +9,91 @@ import ConsoleStep from '../../components/ConsoleStep.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="10分" credentials="不要" cost="$0" />
+<TaskMeta time="15分" credentials="不要" cost="$0" />
 
-評価対象はモデル名だけではありません。このリポジトリでは、次の組み合わせ全体を一つの**profile**として扱います。
+テストケースを作る前に、何を固定し、何を合格と呼ぶかを決めます。評価対象はモデル名ではなく、実際に回答を生む構成全体です。
 
 <CardGrid>
-  <Card title="推論系" icon="seti:config">model / Agent CLI / prompt</Card>
-  <Card title="道具" icon="puzzle">Plugin / Skill / MCP / parser</Card>
-  <Card title="情報と権限" icon="lock">価格ソース / permissions / environment</Card>
-  <Card title="試験問題" icon="document">dataset / case / oracle / rubric</Card>
+  <Card title="Agent" icon="seti:config">model / CLI / reasoning設定</Card>
+  <Card title="指示" icon="document">prompt / output schema / rules</Card>
+  <Card title="道具と権限" icon="puzzle">MCP / public data / sandbox / IAM</Card>
+  <Card title="試験問題" icon="approve-check-circle">case / input / oracle / rubric</Card>
 </CardGrid>
 
 <Steps>
 
-1. ### 1 trialの境界を決める
+1. ### 評価の問いを一文にする
 
-   1 trialは「1ケースを、前回の会話状態を引き継がずに1回実行したもの」です。会話履歴や別ケースの出力を共有すると、独立試行ではなくなります。
+   <ConsoleStep title="今回の問い" label="WORKSHEET">
 
-2. ### 三層評価へ分解する
-
-   <ConsoleStep title="判定を適切な層へ配置する" label="設計">
-
-   | 層 | 何を見るか | 例 |
-   |---|---|---|
-   | 決定的ゲート | 正誤をコードで確定できる条件 | Schema、算術、必須サービス、URL |
-   | 反復信頼性 | 非決定性の大きさ | success rate、Wilson CI、pass@k、pass^k |
-   | LLM Judge | 意味品質 | 仮定、不確実性、除外事項、行動可能性 |
+   **固定したAgent構成は、CloudFormationからAWS月額を見積もるとき、情報不足なら推測せず質問し、情報が十分なら必要サービス・式・根拠をJSONで返せるか。**
 
    </ConsoleStep>
 
-3. ### critical failureを定義する
+   「AWSに詳しいか」のような広すぎる問いは、失敗理由を特定できません。観察できる振る舞いへ落とします。
 
-   timeout、契約違反、必須サービス欠落、価格レンジ逸脱、合計不一致、必須URL欠落はcriticalです。説明が美しくても合格にはしません。
+2. ### 実験条件を凍結する
 
-   <Aside type="caution" title="平均点の罠">
-     「文章品質5点」が「必須サービス欠落」を相殺する設計では、利用者に危険な回答を高得点にできます。合否ゲートと診断スコアを分離します。
+   `workshop/manual/experiment.json`を作ります。値は自分の環境へ合わせてください。
+
+   ```json
+   {
+     "experiment_id": "cost-estimation-prompt-v1",
+     "agent_cli": "codex",
+     "agent_cli_version": "記録する",
+     "model": "記録する",
+     "prompt_version": "agent-v1",
+     "tool_mode": "no-mcp",
+     "permission_mode": "read-only",
+     "case_set": ["cfn-missing-usage", "cfn-static-site"],
+     "repetitions": 5
+   }
+   ```
+
+   prompt、model、MCP、権限のどれかを変更したら、新しい`experiment_id`にします。
+
+3. ### 決定的ゲートを決める
+
+   <ConsoleStep title="コードで判定する条件" label="GATE">
+
+   | 条件 | 不合格にする例 |
+   |---|---|
+   | JSON契約 | 必須field欠落、型違反、JSON以外の出力 |
+   | 安全 | AWSリソース作成、入力ファイル変更 |
+   | 対象網羅 | 必須サービスの欠落 |
+   | 算術 | 内訳の和と合計が不一致 |
+   | 根拠 | 必須の一次情報URLがない |
+   | 情報不足 | 値を捏造し、確認質問を返さない |
+
+   </ConsoleStep>
+
+   これらは正誤をコードで決められるため、LLM Judgeへ渡しません。
+
+4. ### LLM Judgeへ残す条件を決める
+
+   仮定の明確さ、不確実性の扱い、除外事項の明確さ、第三者が再計算できる説明か、の4点だけをJudgeへ任せます。
+
+   <Aside type="caution" title="平均点で相殺しない">
+     必須サービスを落とした回答が文章品質5点でも、総合結果は不合格です。`deterministic_pass AND semantic_pass`を総合合格とします。
    </Aside>
 
-4. ### ケース種別を分ける
+5. ### 1 trialの独立性を定義する
 
-   - **hidden estimation**: oracleをAgentに見せず推定能力を測る
-   - **official-reference holdout**: AWS公式構成を見せ、公表コストは隠す
-   - **public reference reproduction**: 公開済み結果も入力し、構造化再現性を測る
+   1 trialは「新しい会話、新しいworkspace、同じ入力で1回実行」です。前回の会話をresumeせず、別trialの出力も見せません。これを守らない反復は、独立試行として集計できません。
 
 </Steps>
 
-<ExpectedResult title="ここまでの到達点">
+<ExpectedResult title="この章の成果物">
 
-「どのモデルが一番か」ではなく、「固定した実行系が、このdatasetで、critical条件を満たしながら何回安定して成功したか」という問いに置き換えられています。
+`experiment.json`と、決定的ゲート／Judge rubricの責務分担が完成しています。まだAgentは実行しません。
 
 </ExpectedResult>
 
 <Checkpoint>
 
-設定・tool・prompt・datasetのどれかを変更した結果は、同じrunへ上書きせず、別profileまたは別runとして保存します。
+- [ ] 評価対象をmodel + CLI + prompt + tools + permissionsで表した
+- [ ] critical failureをコードで判定する条件へ置いた
+- [ ] Judgeへ意味品質だけを残した
+- [ ] 1 trialの独立性を説明できる
 
 </Checkpoint>

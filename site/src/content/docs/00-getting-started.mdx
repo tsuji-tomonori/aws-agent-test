@@ -1,30 +1,29 @@
 ---
 title: 0. 環境を準備する
-description: リポジトリとPython環境を用意し、認証なしの検証コマンドを通します。
+description: 専用評価CLIに依存せず、Agent CLIと標準ツールだけで実験できる作業場所を用意します。
 sidebar:
   order: 1
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
-import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="10分" credentials="不要" cost="$0" />
+<TaskMeta time="10分" credentials="Agent CLI認証のみ" cost="$0（実行前）" />
 
-このモジュールでは、評価ハーネスをローカルへ準備し、データセットの契約が壊れていないことを確認します。AWS CLIやAWSアカウントは使いません。
+このWorkshopでは、リポジトリ付属の専用評価コマンドを使いません。受講者自身がケース、プロンプト、実行workspace、判定コードを作り、CodexまたはClaude Codeを直接呼び出します。
 
 <Aside type="note" title="必要なもの">
-  Git、Python 3.11以降、ターミナルが必要です。WindowsはWSLの利用を推奨します。
+  Git、Python 3.11以降、JSONを編集できるエディタ、Codex CLIまたはClaude Codeが必要です。MCP章では追加で`uv`とAWSの短期認証を使います。
 </Aside>
 
 <Steps>
 
 1. ### リポジトリを取得する
 
-   <Command title="リポジトリを取得">
+   <Command title="教材を取得">
 
    ```bash
    git clone https://github.com/tsuji-tomonori/aws-agent-test.git
@@ -33,67 +32,72 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    </Command>
 
-2. ### Python環境を作る
+2. ### 使用するAgent CLIを確認する
 
    <Tabs>
-     <TabItem label="macOS / Linux / WSL">
-       <Command title="仮想環境を作成">
+     <TabItem label="Codex">
+       <Command title="Codexを確認">
 
        ```bash
-       python3 -m venv .venv
-       source .venv/bin/activate
-       python -m pip install -e '.[dev]'
+       codex --version
+       codex login status
        ```
 
        </Command>
      </TabItem>
-     <TabItem label="Windows PowerShell">
-       <Command title="仮想環境を作成" prompt="POWERSHELL">
+     <TabItem label="Claude Code">
+       <Command title="Claude Codeを確認">
 
-       ```powershell
-       py -3.11 -m venv .venv
-       .\.venv\Scripts\Activate.ps1
-       python -m pip install -e ".[dev]"
+       ```bash
+       claude --version
+       claude auth status
        ```
 
        </Command>
      </TabItem>
    </Tabs>
 
-3. ### 2つのデータセットを検証する
+   認証はAgent CLIの推論に使うもので、AWS認証とは別です。CLIのバージョンと利用モデルは実験記録へ残します。
 
-   <ConsoleStep title="Schemaとケース間の整合性を検査する">
+3. ### 手作り評価の作業場所を作る
 
-   `validate`はAgentを呼びません。JSON Schema、ケース参照、expected、公開asset契約などを機械的に確認します。
-
-   <Command title="データセットを検証">
+   <Command title="実習ディレクトリを準備">
 
    ```bash
-   aws-agent-eval validate --dataset datasets/aws-cost-v1
-   aws-agent-eval validate --dataset datasets/aws-official-solutions-v1
+   mkdir -p workshop/manual/{cases,prompts,schemas,runs,scripts}
+   python --version
    ```
 
    </Command>
 
-   </ConsoleStep>
+   この配下へ、以降の章で次の成果物を作ります。
 
-   <ExpectedResult>
+   ```text
+   workshop/manual/
+   ├── cases/       # 公開入力と、別管理するoracle
+   ├── prompts/     # Agent用とJudge用
+   ├── schemas/     # 機械判定する出力契約
+   ├── runs/        # trialごとの入力・出力・判定
+   └── scripts/     # 自分で内容を確認して作る短い採点コード
+   ```
 
-   両方のコマンドが終了コード`0`で完了し、エラーが表示されません。この時点ではネットワーク通信もAWS認証も発生しません。
+4. ### 認証境界を決める
 
-   </ExpectedResult>
-
-4. ### 安全境界を確認する
-
-   `.gitignore`に`runs/`と`asset-cache/`が含まれ、`.github/workflows/ci.yml`がmock profileだけを実行することを確認します。
+   最初のケースはAWS認証なしで実行します。AWS Pricing MCPは第4章まで追加しません。シェルにデプロイ可能なAWS profileが残っている場合は、別ターミナルまたは資格情報のない環境で進めます。
 
 </Steps>
 
+<ExpectedResult>
+
+`python`と選んだAgent CLIのバージョンが表示され、`workshop/manual/`の5ディレクトリが作成されています。この時点でAWS APIは呼びません。
+
+</ExpectedResult>
+
 <Checkpoint>
 
-- [ ] Python 3.11以降を使っている
-- [ ] 2つのdatasetがvalidateを通る
-- [ ] AWS認証情報を設定せずに完了した
-- [ ] `runs/`をGitへ追加しない理由を説明できる
+- [ ] 専用評価CLIを使わない実習であることを理解した
+- [ ] Agent CLIとモデルを記録した
+- [ ] AWS認証とAgent CLI認証を区別した
+- [ ] `runs/`へ秘密情報やoracleをコピーしない方針を決めた
 
 </Checkpoint>

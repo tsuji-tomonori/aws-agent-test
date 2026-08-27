@@ -1,6 +1,6 @@
 ---
-title: 6. LLM Judgeを校正する
-description: 意味品質だけを匿名・反復判定し、決定的評価を補完するJudgeを設計します。
+title: 6. 独立試行を繰り返す
+description: 同じケースを新しい会話・workspaceで5回実行し、一度の成功と安定性を区別します。
 ---
 
 import { Steps, Aside } from '@astrojs/starlight/components';
@@ -10,71 +10,146 @@ import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15分" level="発展" credentials="準備のみ不要" cost="Judge実行時は別途" />
+<TaskMeta time="20–40分" level="中級" credentials="Agent CLI認証" cost="5 trial分の推論費用" />
 
-Judgeへ任せるのは、仮定、不確実性、除外事項、行動可能性の4次元だけです。価格、合計、Schema、必須サービス、質問IDは決定的evaluatorが判定します。
+1回の成功はデモにはなりますが、運用可能性の証明にはなりません。同一条件を5回繰り返し、成功と失敗を都合よく選ばず、すべて保存します。
 
 <Steps>
 
-1. ### 匿名の判定batchを作る
+1. ### 変更しない条件を確認する
 
-   <Command title="Judge入力を準備">
+   model、CLI version、prompt、case、MCP、権限、出力Schema、timeoutを固定します。途中で変更した場合はrunを止め、新しい`experiment_id`で最初から測ります。
+
+2. ### 5個の独立workspaceを作って実行する
+
+   Codexの例です。各trialで入力だけをコピーし、oracleはケース側に残します。
+
+   <Command title="5回の独立trialを実行" prompt="5 FRESH SESSIONS">
 
    ```bash
-   aws-agent-eval prepare-judge \
-     --run-dir runs/reliability-lab \
-     --repeats 3
+   case_id=cfn-missing-usage
+   case_dir="workshop/manual/cases/$case_id"
+   run_dir="workshop/manual/runs/no-mcp/$case_id"
+
+   for number in 01 02 03 04 05; do
+     trial="$run_dir/trial-$number"
+     mkdir -p "$trial/input"
+     cp "$case_dir/case-public.json" "$trial/case-public.json"
+     cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+     cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+     cp workshop/manual/schemas/agent-output.schema.json \
+       "$trial/agent-output.schema.json"
+
+     (
+       cd "$trial"
+       codex exec --ephemeral --sandbox read-only --json \
+         --output-schema agent-output.schema.json \
+         --output-last-message answer.json \
+         - < TASK.md > events.jsonl
+       echo "$?" > exit-code.txt
+     )
+
+     if test -s "$trial/answer.json"; then
+       python workshop/manual/scripts/check_result.py \
+         "$trial/answer.json" "$case_dir/oracle.json" \
+         > "$trial/verdict.json" || true
+     else
+       echo '{"passed": false, "errors": ["agent execution failed"]}' \
+         > "$trial/verdict.json"
+     fi
+   done
    ```
 
    </Command>
 
-   `judge/batch.jsonl`にはprofile名とmodel名を含めません。順序をランダム化し、同じ回答を3回判定します。
+   Claude Codeを使う場合は、ループ内のAgent呼び出しだけを第5章の`claude -p`へ置き換えます。sessionのresumeは使いません。
 
-2. ### 固定rubricで判定する
+3. ### 成功率と信頼区間を計算する
 
-   <ConsoleStep title="Judgeの責務を4次元へ限定する" label="RUBRIC">
+   `workshop/manual/scripts/summarize.py`を作ります。
 
-   | 次元 | 低品質 | 合格の目安 | 高品質 |
-   |---|---|---|---|
-   | 仮定 | 暗黙・矛盾 | 主な仮定を列挙 | 根拠と影響まで接続 |
-   | 不確実性 | 推測を断定 | 曖昧さを記載 | 質問と感度も説明 |
-   | 除外事項 | 記載なし | 主な除外を列挙 | 境界と影響を明確化 |
-   | 行動可能性 | 再現不能 | 概ね追跡可能 | 第三者が更新・反証可能 |
+   ```python
+   import json
+   import math
+   import sys
+   from pathlib import Path
+
+   verdicts = [
+       json.loads(path.read_text(encoding="utf-8"))
+       for path in sorted(Path(sys.argv[1]).glob("trial-*/verdict.json"))
+   ]
+   n = len(verdicts)
+   successes = sum(item["passed"] for item in verdicts)
+   p = successes / n
+   z = 1.96
+   denominator = 1 + z * z / n
+   center = (p + z * z / (2 * n)) / denominator
+   margin = z * math.sqrt((p * (1 - p) + z * z / (4 * n)) / n) / denominator
+
+   summary = {
+       "trials": n,
+       "successes": successes,
+       "success_rate": p,
+       "wilson_95ci": [max(0, center - margin), min(1, center + margin)],
+       "pass_at_k": successes > 0,
+       "pass_power_k": successes == n,
+   }
+   print(json.dumps(summary, indent=2))
+   ```
+
+   <Command title="反復結果を集計">
+
+   ```bash
+   python workshop/manual/scripts/summarize.py \
+     workshop/manual/runs/no-mcp/cfn-missing-usage \
+     > workshop/manual/runs/no-mcp/cfn-missing-usage/summary.json
+   ```
+
+   </Command>
+
+4. ### 4つの指標を読み分ける
+
+   <ConsoleStep title="指標を運用上の問いへ翻訳する" label="ANALYSIS">
+
+   | 指標 | このケースで答える問い |
+   |---|---|
+   | success rate | 5回のうち何回、全ゲートを通ったか |
+   | Wilson 95% CI | 少数試行の成功率をどこまで信用できるか |
+   | pass@5 | 5回のうち一度でも成功したか |
+   | pass^5 | 5回すべて成功したか |
 
    </ConsoleStep>
 
-3. ### 判定を集約する
+   人手が毎回再試行できる試作品ではpass@kも参考になります。無人運用を考えるなら、すべて成功するpass^kを重く見ます。
 
-   <Command title="Judge結果を集約">
+5. ### 失敗を分類する
 
-   ```bash
-   aws-agent-eval aggregate-judge \
-     --run-dir runs/reliability-lab \
-     --input runs/reliability-lab/judge/judgments.jsonl
-   ```
+   各`verdict.json`と`events.jsonl`から、execution、timeout、JSON、service、arithmetic、source、clarificationへ分類します。単に「LLMが不安定」とまとめず、prompt、tool、case、modelのどこを直すべきか結び付けます。
 
-   </Command>
+6. ### MCPありケースも同じ回数で測る
 
-   各次元は中央値、semantic passは多数決、critical concernは1回でも指摘があれば保持します。
+   第4章を実施した場合は、上のloopの`case_id`を`cfn-static-site`、`run_dir`を`workshop/manual/runs/pricing-mcp/cfn-static-site`へ変えて5回実行します。pilotの`trial-01`を本測定へ流用せず、新しいrun IDで5回をそろえます。
 
-4. ### Gold setで校正する
-
-   人間2名が合意した例を用意し、Judgeのfalse passを優先して調べます。数値は正しいが仮定不明、曖昧さを勝手に補完、長いが再計算不能、といった境界例を入れます。
+   MCP package、AWS profile、tool一覧、prompt、modelのどれかが途中で変わったtrialは同じ集計へ含めません。
 
 </Steps>
 
-<Aside type="danger" title="Judgeはゲートを上書きしない">
-  決定的trialが不合格なら、Judgeが3回すべてpassでも総合合格にはしません。Judgeの流暢さで客観的失敗を消さないためです。
+<Aside type="note" title="5/5でも真の成功率100%とは限らない">
+  少数試行では区間が広いため、success rateとWilson 95%信頼区間を必ず併記します。試行数は推論費用と必要な確度から決めます。
 </Aside>
 
 <ExpectedResult>
 
-Judgeのprovider/model/version、promptとschemaのdigest、推論設定、反復数、gold set一致率、生JSONL、集約結果がrun evidenceとして残ります。
+5個の独立trial、raw event、最終回答、決定的判定、`summary.json`が残り、一度の成功と反復安定性を区別できます。
 
 </ExpectedResult>
 
 <Checkpoint>
 
-モデルを変更したJudgeは新しいprofileとして扱います。過去のJudge結果と混ぜず、再校正してから本測定に使います。
+- [ ] trialごとに新しいworkspaceと会話を使った
+- [ ] 失敗trialも削除せず保存した
+- [ ] success rateとWilson CIを併記した
+- [ ] pass@kとpass^kを区別した
+- [ ] 途中で条件を変えていない
 
 </Checkpoint>

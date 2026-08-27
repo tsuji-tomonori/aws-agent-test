@@ -1,74 +1,192 @@
 ---
-title: 5. 反復実験を評価する
-description: success rate、Wilson信頼区間、pass@k、pass^kを使って非決定性を読み解きます。
+title: 5. 1ケースを実行・採点する
+description: Agent CLIを直接1回実行し、自分で書いた決定的チェッカーで結果を採点します。
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15分" level="中級" credentials="不要（Mock）" cost="$0" />
+<TaskMeta time="25分" level="中級" credentials="Agent CLI認証" cost="1 trial分の推論費用" />
 
-非決定的なAgentは、同じ入力でも結果が変わります。そこで「成功したか」に加え、「どの程度の確率で、どのケースを、繰り返しても成功できたか」を測ります。
+まず`cfn-missing-usage`をMCPなしで1回だけ実行します。反復を始める前に、入力、出力、終了状態、採点理由を人が追えることを確認します。
 
 <Steps>
 
-1. ### 5回のtrialを作る
+1. ### Agent CLIを直接呼ぶ
 
-   <Command title="反復実験">
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="trial-01を実行" prompt="READ ONLY">
+
+       ```bash
+       trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
+       (
+         cd "$trial"
+         codex exec --ephemeral --sandbox read-only \
+           --output-schema agent-output.schema.json \
+           --output-last-message answer.json \
+           - < TASK.md
+       )
+       ```
+
+       </Command>
+
+       `--ephemeral`で会話履歴を永続化せず、`--sandbox read-only`でファイル変更を許可しません。`--output-schema`は最終回答をJSON契約へ制約します。
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="trial-01を実行" prompt="READ ONLY">
+
+       ```bash
+       trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
+       (
+         cd "$trial"
+         claude -p --max-turns 24 "$(cat TASK.md)" > answer.json
+       )
+       ```
+
+       </Command>
+
+       新しいprocessを使い、過去sessionをresumeしません。tool permissionは読み取りだけに限定し、最終JSONを`answer.json`へ保存します。
+     </TabItem>
+   </Tabs>
+
+2. ### 出力を開く
+
+   <Command title="JSONと主要fieldを確認">
 
    ```bash
-   aws-agent-eval experiment \
-     --dataset datasets/aws-cost-v1 \
-     --profile config/profiles/mock-flaky.json \
-     --repetitions 5 \
-     --run-dir runs/reliability-lab
-   aws-agent-eval report --run-dir runs/reliability-lab
+   python -m json.tool \
+     workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01/answer.json
    ```
 
    </Command>
 
-2. ### 4つの指標を読む
+   このケースの期待は金額ではなく、`status=needs_clarification`と5個の不足IDです。もっともらしい月額を返していたら失敗です。
 
-   <ConsoleStep title="指標を運用上の問いへ翻訳する" label="分析">
+3. ### 決定的チェッカーを自分で作る
 
-   | 指標 | 答える問い |
-   |---|---|
-   | trial success rate | 全trialのうち何%が合格したか |
-   | Wilson 95% CI | 少数試行の成功率をどこまで信用できるか |
-   | pass@k | k回のうち1回以上成功するケースは何%か |
-   | pass^k | k回すべて成功するケースは何%か |
+   `workshop/manual/scripts/check_result.py`を作ります。判定内容が読める短いコードにします。
 
-   </ConsoleStep>
+   ```python
+   import json
+   import sys
+   from pathlib import Path
 
-3. ### pass@kとpass^kを比較する
+   result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+   oracle = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+   errors: list[str] = []
 
-   1回でも成功すればよいデモではpass@kが参考になります。人手確認なしで反復運用するAgentでは、**すべて成功するpass^k**がより厳しい主要指標です。
+   if result.get("status") != oracle["expected_status"]:
+       errors.append("status mismatch")
 
-4. ### 失敗taxonomyを作る
+   required_services = set(oracle.get("required_services", []))
+   actual_services = {
+       item.get("service") for item in result.get("service_estimates", [])
+   }
+   if not required_services <= actual_services:
+       errors.append("required service missing")
 
-   失敗をtimeout、Schema、対象漏れ、算術、価格根拠、確認質問、説明品質へ分類します。「Agentが不安定だった」の一行で終わらせず、修正対象をdataset・prompt・tool・modelへ割り当てます。
+   required_missing = set(oracle.get("required_missing_input_ids", []))
+   actual_missing = {item.get("id") for item in result.get("missing_inputs", [])}
+   if not required_missing <= actual_missing:
+       errors.append("required clarification missing")
+
+   expected_total = oracle.get("monthly_total_usd")
+   if expected_total:
+       total = result.get("monthly_total_usd")
+       if not isinstance(total, (int, float)):
+           errors.append("monthly total missing")
+       elif not expected_total["minimum"] <= total <= expected_total["maximum"]:
+           errors.append("monthly total outside oracle range")
+
+       subtotal = sum(
+           item.get("monthly_cost_usd", 0)
+           for item in result.get("service_estimates", [])
+       )
+       if isinstance(total, (int, float)) and abs(total - subtotal) > 0.02:
+           errors.append("service subtotal mismatch")
+
+   required_urls = set(oracle.get("required_source_urls", []))
+   actual_urls = {
+       source.get("url")
+       for item in result.get("service_estimates", [])
+       for source in item.get("sources", [])
+   }
+   if not required_urls <= actual_urls:
+       errors.append("required source missing")
+
+   print(json.dumps({"passed": not errors, "errors": errors}, ensure_ascii=False))
+   raise SystemExit(1 if errors else 0)
+   ```
+
+4. ### oracleを外側から渡して採点する
+
+   <Command title="決定的ゲートを実行">
+
+   ```bash
+   python workshop/manual/scripts/check_result.py \
+     workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01/answer.json \
+     workshop/manual/cases/cfn-missing-usage/oracle.json
+   ```
+
+   </Command>
+
+   Agent workspaceからはoracleを読めませんが、採点processは明示的に2ファイルを受け取ります。
+
+5. ### MCPありケースを1回pilotする
+
+   第4章を完了した場合だけ、`cfn-static-site`を別の実験条件で実行します。
+
+   <Command title="Pricing MCP pilotを準備・実行" prompt="PRICING MCP / READ ONLY">
+
+   ```bash
+   case_dir=workshop/manual/cases/cfn-static-site
+   trial=workshop/manual/runs/pricing-mcp/cfn-static-site/trial-01
+   mkdir -p "$trial/input"
+   cp "$case_dir/case-public.json" "$trial/case-public.json"
+   cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+   cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+   cp workshop/manual/schemas/agent-output.schema.json \
+     "$trial/agent-output.schema.json"
+
+   (
+     cd "$trial"
+     codex exec --ephemeral --sandbox read-only --json \
+       --output-schema agent-output.schema.json \
+       --output-last-message answer.json \
+       - < TASK.md > events.jsonl
+   )
+
+   python workshop/manual/scripts/check_result.py \
+     "$trial/answer.json" "$case_dir/oracle.json"
+   ```
+
+   </Command>
+
+   Claude Codeの場合は最初のAgent呼び出しと同じ形へ置き換えます。MCP tool call、根拠URL、単価、式、出力先外への書き込みがないことを確認してから反復へ進みます。
 
 </Steps>
 
-<Aside type="note" title="5/5でも100%とは限らない">
-  少数試行の全成功を過信しないためにWilson信頼区間を併記します。反復数はpilotの時間と推論費用を見て決めます。
+<Aside type="caution" title="失敗を直ちに再実行しない">
+  timeout、MCP未接続、Schema違反、対象漏れを分類してから修正します。成功するまで同じtrialをやり直すと、失敗率を隠してしまいます。
 </Aside>
 
 <ExpectedResult>
 
-「このprofileは成功率80%」だけでなく、「どの失敗がcriticalで、pass^kが運用条件を満たすか」まで判断できます。
+1 trialの`answer.json`と、`passed`または具体的な`errors`を持つ採点結果が得られます。採点ロジックを受講者自身が説明できます。
 
 </ExpectedResult>
 
 <Checkpoint>
 
-- [ ] pass@kとpass^kを用途別に説明できる
-- [ ] confidence intervalを成功率と併記する
-- [ ] critical failureを品質スコアで相殺しない
-- [ ] 変更後は同一条件で再測定する
+- [ ] Agent CLIを直接呼び出した
+- [ ] 新しい会話と読み取り専用sandboxを使った
+- [ ] oracleをAgentに見せず採点した
+- [ ] 不合格理由をコードから追跡できる
+- [ ] 1回のpilot確認前に反復数を増やしていない
 
 </Checkpoint>

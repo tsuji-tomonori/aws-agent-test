@@ -1,85 +1,129 @@
 ---
-title: 3. ケースを設計する
-description: Agentへ渡す入力と、評価側だけが持つoracleを分離したケースを設計します。
+title: 3. プロンプトと出力を作る
+description: ケースから独立したAgentプロンプトと、Pythonで検査できるJSON出力契約を作ります。
 ---
 
-import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import { Steps, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
 import Checkpoint from '../../components/Checkpoint.astro';
 
-<TaskMeta time="15分" level="中級" credentials="不要" cost="$0" />
+<TaskMeta time="20分" level="中級" credentials="不要" cost="$0" />
 
-良い評価は問題文から始まります。ケースを増やす前に、入力形式、課金パターン、曖昧さ、期待状態、サービス種別、価格取得方法の偏りを設計表で確認します。
+良いプロンプトは正解を教えるものではなく、役割、安全境界、参照すべき入力、判断規則、出力契約を明確にします。ケース固有の金額は書きません。
 
 <Steps>
 
-1. ### 既存ケースの構造を見る
+1. ### Agentプロンプトを作る
 
-   <Tabs>
-     <TabItem label="入力（Agentに見える）">
-       `cases/<case-id>/input/`のIaCやscenario、検証済みの公開asset、生成された`TASK.md`、出力Schemaだけです。
-     </TabItem>
-     <TabItem label="評価契約（Agentに見せない）">
-       `case.json`の`expected`、oracle、価格レンジ、price snapshot、provenance、公式cost page URLです。
-     </TabItem>
-   </Tabs>
+   `workshop/manual/prompts/agent-v1.md`を作ります。
 
-2. ### 情報不足ケースを設計する
+   ```markdown
+   # AWS cost estimation test
 
-   <ConsoleStep title="推測ではなく確認質問を正解にする" label="ケース設計">
+   あなたは読み取り専用のAWSコスト見積もりを行います。
 
-   利用量が欠けている場合、もっともらしい値を補うAgentを成功扱いしません。`required_missing_input_ids`に安定IDを列挙し、自然文の完全一致ではなくID集合で判定します。
+   ## 入力
+   - `case-public.json`を読み、task、region、usage、pricing basisを確認する
+   - `input/`配下の全ファイルを調べ、課金対象サービスを抽出する
+   - `agent-output.schema.json`を満たすJSONを最終回答にする
 
-   ```json
-   {
-     "expected_status": "needs_clarification",
-     "required_missing_input_ids": [
-       "monthly-request-count",
-       "average-response-size"
-     ]
-   }
+   ## 安全境界
+   - AWSリソースを作成・更新・削除しない
+   - 入力ファイルを変更しない
+   - account固有の請求データを取得しない
+   - 利用量が不足している場合は値を推測しない
+
+   ## 判断規則
+   - 入力が十分なら`status`を`completed`にする
+   - 不足なら`needs_clarification`にし、安定したIDと質問を返す
+   - Free Tier、割引、税、転送、ログなどの除外を明記する
+   - 各サービスの数量、単位、単価、式、小計、一次情報URLを示す
+   - 合計はサービス小計の和と一致させる
+
+   ## Tool
+   - 接続済みのAWS Pricing MCPがある実験だけ価格照会に使う
+   - MCPがない実験で、存在するふりや架空のtool resultを作らない
+
+   Markdownで囲まず、JSONオブジェクトだけを返す。
    ```
 
-   </ConsoleStep>
+2. ### 出力Schemaを用意する
 
-3. ### oracleの作成手順を分離する
+   教材のSchemaを実習用へコピーし、JSONとして読めることを確認します。
 
-   IaCから課金対象を抽出し、usageを価格単位へ変換し、region・tier・購入形態を固定して式を計算します。作成者とは別の人が一次資料から再計算して差異を解消します。
-
-4. ### 漏洩テストを実行する
-
-   <Command title="ケース契約と漏洩防止テスト">
+   <Command title="出力契約を準備">
 
    ```bash
-   pytest tests/test_dataset.py tests/test_runner.py
+   cp schemas/agent-output.schema.json \
+     workshop/manual/schemas/agent-output.schema.json
+   python -m json.tool \
+     workshop/manual/schemas/agent-output.schema.json > /dev/null
    ```
 
    </Command>
 
-   <ExpectedResult>
+   <ConsoleStep title="Schemaで固定するもの" label="CONTRACT">
 
-   テストが成功し、生成された`TASK.md`にexpected range、oracle、公式cost page URLが含まれないことが確認されます。
+   | field | 目的 |
+   |---|---|
+   | `status` | 計算完了／質問／非対応／エラーを区別 |
+   | `service_estimates` | サービス、数量、単価、式、根拠を機械検査 |
+   | `monthly_total_usd` | oracle範囲と内訳合計を比較 |
+   | `missing_inputs` | 情報不足を自然文ではなく安定IDで比較 |
+   | `assumptions` / `excluded_costs` | Judgeが読む意味品質を分離 |
 
-   </ExpectedResult>
+   </ConsoleStep>
 
-5. ### version更新ルールを決める
+3. ### trialへ見せるファイルだけを配置する
 
-   ケース追加はminor、契約破壊はmajor、価格更新はpatchです。公開済みdatasetを上書きせず、新しいversionとして残します。
+   まず情報不足ケースの1回目を準備します。
+
+   <Command title="trial-01 workspaceを作成">
+
+   ```bash
+   trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
+   mkdir -p "$trial/input"
+   cp workshop/manual/cases/cfn-missing-usage/case-public.json \
+     "$trial/case-public.json"
+   cp workshop/manual/cases/cfn-missing-usage/input/template.yaml \
+     "$trial/input/template.yaml"
+   cp workshop/manual/schemas/agent-output.schema.json \
+     "$trial/agent-output.schema.json"
+   cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+   ```
+
+   </Command>
+
+   `oracle.json`はコピーしません。採点側は元のケースディレクトリから読みます。
+
+4. ### プロンプトをレビューする
+
+   次の3つを人が確認します。
+
+   - 正解の金額、expected status、必須IDが混ざっていない
+   - MCPの有無と権限が実験条件と一致している
+   - 「詳しく答える」ではなく、観察可能な出力要件になっている
 
 </Steps>
 
-<Aside type="caution" title="公開情報でもoracleになり得る">
-  AWSが公開している金額でも、Agentの試行workspaceへ直接渡せばholdoutではありません。出典を保存することと、回答時に見せることを分けます。
+<Aside type="tip" title="長さより判断規則">
+  例文を増やしすぎると、その表現を再現するテストになります。曖昧な場面で「計算・質問・停止」のどれを選ぶかを明示し、ケース固有の正解は隠します。
 </Aside>
+
+<ExpectedResult>
+
+Agentが読む`TASK.md`、`case-public.json`、`input/`、`agent-output.schema.json`だけを持つ、oracleなしのtrial workspaceが完成しています。
+
+</ExpectedResult>
 
 <Checkpoint>
 
-- [ ] Agent入力と評価側情報を説明できる
-- [ ] 情報不足を安定IDで評価する理由を説明できる
-- [ ] oracleの作成とレビューを分離した
-- [ ] ケース種別を一つの平均へ混ぜない
+- [ ] promptに役割・安全・判断規則・出力契約がある
+- [ ] JSON Schemaで機械判定できる形にした
+- [ ] trial workspaceへoracleをコピーしていない
+- [ ] MCPなしのときtoolを捏造しない指示がある
 
 </Checkpoint>
