@@ -3,7 +3,7 @@ title: 7. LLM Judgeを作る
 description: 意味品質だけを評価するrubricを作り、匿名化・反復・gold setでJudgeを校正します。
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -78,35 +78,69 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
    Judge用modelを固定して3個の新規workspaceで実行します。対象AgentとJudgeを同一modelにする場合も、その事実と理由を記録します。
 
-   <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
 
-   ```bash
-   export JUDGE_MODEL="使用するmodel名"
-   item=workshop/manual/runs/judge/item-7f3a
+       ```bash
+       export JUDGE_MODEL="使用するmodel名"
+       item=workshop/manual/runs/judge/item-7f3a
 
-   for repeat in 1 2 3; do
-     judgment="$item/repeat-$repeat"
-     mkdir -p "$judgment"
-     cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
-     cp workshop/manual/schemas/judge-output.schema.json \
-       "$judgment/judge-output.schema.json"
-     cp "$item/judge-input.json" "$judgment/judge-input.json"
-     echo "$repeat" > "$judgment/repeat.txt"
+       for repeat in 1 2 3; do
+         judgment="$item/repeat-$repeat"
+         mkdir -p "$judgment"
+         cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
+         cp workshop/manual/schemas/judge-output.schema.json \
+           "$judgment/judge-output.schema.json"
+         cp "$item/judge-input.json" "$judgment/judge-input.json"
+         echo "$repeat" > "$judgment/repeat.txt"
 
-     (
-       cd "$judgment"
-       codex exec --ephemeral --sandbox read-only \
-         --model "$JUDGE_MODEL" \
-         --output-schema judge-output.schema.json \
-         --output-last-message judgment.json \
-         - < TASK.md
-     )
-   done
-   ```
+         (
+           cd "$judgment"
+           codex exec --ephemeral --sandbox read-only \
+             --model "$JUDGE_MODEL" \
+             --output-schema judge-output.schema.json \
+             --output-last-message judgment.json \
+             - < TASK.md
+         )
+       done
+       ```
 
-   </Command>
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
 
-   Claude CodeをJudgeにする場合も、第5章と同じく3個の新規processを使い、各結果を別ファイルへ保存します。
+       ```bash
+       export JUDGE_MODEL="使用するmodel名"
+       item=workshop/manual/runs/judge/item-7f3a
+
+       for repeat in 1 2 3; do
+         judgment="$item/repeat-$repeat"
+         mkdir -p "$judgment"
+         cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
+         cp workshop/manual/schemas/judge-output.schema.json \
+           "$judgment/judge-output.schema.json"
+         cp "$item/judge-input.json" "$judgment/judge-input.json"
+         echo "$repeat" > "$judgment/repeat.txt"
+
+         (
+           cd "$judgment"
+           claude -p --model "$JUDGE_MODEL" \
+             --no-session-persistence \
+             --permission-mode dontAsk \
+             --tools "Read,Glob,Grep" \
+             --json-schema "$(cat judge-output.schema.json)" \
+             "$(cat TASK.md)" > judgment.json
+         )
+       done
+       ```
+
+       </Command>
+     </TabItem>
+   </Tabs>
+
+   どちらも会話を引き継がず、各結果を別ファイルへ保存します。Claude Codeではsession persistenceと書き込み系toolを明示的に無効化します。
 
 5. ### 3回の結果を集約する
 

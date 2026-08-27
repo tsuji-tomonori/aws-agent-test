@@ -74,6 +74,7 @@ header.header { border-top: 3px solid #ff9900; }
 .command-panel__dots i:nth-child(2) { background: #febc2e; }
 .command-panel__dots i:nth-child(3) { background: #28c840; }
 .command-panel__body { padding: .25rem .85rem .45rem; }
+.command-panel .expressive-code figcaption.header { display: none; }
 .command-panel pre { margin: .65rem 0 !important; border: 0 !important; box-shadow: none !important; }
 
 .expected-result, .checkpoint { display: grid; grid-template-columns: auto 1fr; gap: .8rem; margin: 1.6rem 0; padding: 1rem 1.1rem; border-radius: .75rem; }

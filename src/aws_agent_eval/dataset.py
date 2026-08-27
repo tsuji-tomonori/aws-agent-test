@@ -87,7 +87,7 @@ def _validate_oracle(case_id: str, case_data: dict[str, object]) -> None:
     assert isinstance(expected, dict)
     total = oracle["monthly_total_usd"]
     if expected["status"] == "completed":
-        if not isinstance(total, (int, float)):
+        if not isinstance(total, int | float):
             raise ValueError(f"{case_id}: completed case requires oracle monthly_total_usd")
         calculated = sum(float(item["monthly_cost_usd"]) for item in calculations)
         if abs(float(total) - calculated) > 0.01:

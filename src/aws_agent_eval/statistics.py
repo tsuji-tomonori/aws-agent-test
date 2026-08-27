@@ -45,7 +45,7 @@ def summarise_trials(trials: list[JsonObject], repetitions: int) -> JsonObject:
         if isinstance(response, dict):
             metrics = response.get("agent_metrics")
             if isinstance(metrics, dict) and isinstance(
-                metrics.get("model_cost_usd"), (int, float)
+                metrics.get("model_cost_usd"), int | float
             ):
                 model_costs.append(float(metrics["model_cost_usd"]))
 
