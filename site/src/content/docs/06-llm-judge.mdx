@@ -62,7 +62,7 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    </Command>
 
-   Claude Codeを使う場合は、ループ内のAgent呼び出しだけを第5章の`claude -p`へ置き換えます。sessionのresumeは使いません。
+   Claude Codeを使う場合は、ループ内のAgent呼び出しだけを第5章の`claude -p`へ置き換えます。`--no-session-persistence`、読み取りtool限定、`dontAsk`、JSON Schema検証を残し、sessionのresumeは使いません。
 
 3. ### 成功率と信頼区間を計算する
 

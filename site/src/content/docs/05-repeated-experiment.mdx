@@ -44,13 +44,18 @@ import Checkpoint from '../../components/Checkpoint.astro';
        trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
        (
          cd "$trial"
-         claude -p --max-turns 24 "$(cat TASK.md)" > answer.json
+         claude -p --max-turns 24 \
+           --no-session-persistence \
+           --permission-mode dontAsk \
+           --tools "Read,Glob,Grep" \
+           --json-schema "$(cat agent-output.schema.json)" \
+           "$(cat TASK.md)" > answer.json
        )
        ```
 
        </Command>
 
-       新しいprocessを使い、過去sessionをresumeしません。tool permissionは読み取りだけに限定し、最終JSONを`answer.json`へ保存します。
+       `--no-session-persistence`で会話を保存せず、`--tools`で読み取り系toolだけを公開します。`dontAsk`により未許可toolは対話待ちにせず拒否し、`--json-schema`で最終JSONを検証して`answer.json`へ保存します。
      </TabItem>
    </Tabs>
 
@@ -167,7 +172,7 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    </Command>
 
-   Claude Codeの場合は最初のAgent呼び出しと同じ形へ置き換えます。MCP tool call、根拠URL、単価、式、出力先外への書き込みがないことを確認してから反復へ進みます。
+   Claude Codeの場合は最初のAgent呼び出しと同じ安全flagを使い、Pricing MCPのtoolだけを`--allowedTools "mcp__aws-pricing__*"`で追加許可します。MCP tool call、根拠URL、単価、式、出力先外への書き込みがないことを確認してから反復へ進みます。
 
 </Steps>
 

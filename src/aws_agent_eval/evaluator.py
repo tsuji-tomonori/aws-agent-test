@@ -155,7 +155,7 @@ def _completed_checks(expected: dict[str, Any], response: JsonObject) -> list[Ch
 
     actual_total_value = response["monthly_total_usd"]
     total_range = expected["total_range"]
-    total_ok = isinstance(actual_total_value, (int, float)) and isinstance(total_range, dict)
+    total_ok = isinstance(actual_total_value, int | float) and isinstance(total_range, dict)
     total_detail = "monthly_total_usd is missing"
     if total_ok:
         actual_total = float(actual_total_value)
@@ -167,7 +167,7 @@ def _completed_checks(expected: dict[str, Any], response: JsonObject) -> list[Ch
 
     arithmetic_ok = False
     arithmetic_detail = "monthly_total_usd is missing"
-    if isinstance(actual_total_value, (int, float)):
+    if isinstance(actual_total_value, int | float):
         actual_total = float(actual_total_value)
         calculated = sum(float(item["monthly_cost_usd"]) for item in estimates)
         tolerance = max(0.02, abs(actual_total) * 0.005)
