@@ -66,15 +66,15 @@ header.header { border-top: 3px solid #ff9900; }
 .console-step__label { flex: none; padding: .2rem .55rem; border-radius: 999px; background: color-mix(in srgb, var(--workshop-blue) 16%, transparent); color: var(--workshop-blue); font-size: .7rem; font-weight: 800; letter-spacing: .06em; }
 .console-step__body { padding: .35rem 1.2rem 1.1rem; }
 
-.command-panel { margin: 1.5rem 0; overflow: hidden; border: 1px solid #334155; border-radius: .75rem; background: #07111f; box-shadow: 0 14px 30px rgba(3, 9, 18, .2); }
-.command-panel__bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: .65rem .8rem; border-bottom: 1px solid #243244; color: #b8c4d4; font: 700 .72rem/1 ui-monospace, monospace; }
-.command-panel__bar small { justify-self: end; color: #6e8199; font-size: .62rem; letter-spacing: .08em; }
+.command-panel { margin: 1.5rem 0; overflow: hidden; border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-6); box-shadow: 0 14px 30px rgba(3, 9, 18, .16); }
+.command-panel__bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: .65rem .8rem; border-bottom: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); color: var(--sl-color-gray-1); font: 700 .72rem/1 ui-monospace, monospace; }
+.command-panel__bar small { justify-self: end; color: var(--sl-color-gray-2); font-size: .62rem; letter-spacing: .08em; }
 .command-panel__dots { display: flex; gap: .35rem; }
 .command-panel__dots i { width: .55rem; height: .55rem; border-radius: 50%; background: #ff5f57; }
 .command-panel__dots i:nth-child(2) { background: #febc2e; }
 .command-panel__dots i:nth-child(3) { background: #28c840; }
 .command-panel__body { padding: .25rem .85rem .45rem; }
-.command-panel pre { margin: .65rem 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.command-panel pre { margin: .65rem 0 !important; border: 0 !important; box-shadow: none !important; }
 
 .expected-result, .checkpoint { display: grid; grid-template-columns: auto 1fr; gap: .8rem; margin: 1.6rem 0; padding: 1rem 1.1rem; border-radius: .75rem; }
 .expected-result { border: 1px solid color-mix(in srgb, var(--workshop-green) 50%, transparent); background: color-mix(in srgb, var(--workshop-green) 9%, transparent); }
