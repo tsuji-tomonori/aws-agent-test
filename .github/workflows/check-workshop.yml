@@ -1,0 +1,34 @@
+name: Check workshop
+
+on:
+  pull_request:
+    paths:
+      - 'site/**'
+      - '.github/workflows/check-workshop.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/check-workshop.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: npm ci
+        working-directory: site
+      - run: npm run build
+        working-directory: site
+      - run: python site/scripts/check_rendered.py

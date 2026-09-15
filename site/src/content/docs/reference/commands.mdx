@@ -4,6 +4,7 @@ description: 手作り評価で作成するファイル、記録する条件、�
 tableOfContents: false
 ---
 
+import Command from '../../../components/Command.astro';
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 import Checkpoint from '../../../components/Checkpoint.astro';
 
@@ -35,14 +36,56 @@ import Checkpoint from '../../../components/Checkpoint.astro';
   </TabItem>
 </Tabs>
 
+## 保存先の早見表
+
+すべて`aws-agent-test/`直下からのパスです。作成コマンドはリンク先の各章にあります。
+
+| 章 | 保存先 | 形式・作成方法 |
+|---|---|---|
+| [1. 実験条件](../../01-evaluation-system/) | `workshop/manual/experiment.json` | JSON・本文から作成して環境値を記入 |
+| [2. ケース](../../02-mock-run/) | `workshop/manual/cases/cfn-static-site/case-public.json` | JSON・本文から作成 |
+| 2 | `workshop/manual/cases/cfn-static-site/oracle.json` | JSON・評価側だけに保存 |
+| 2 | `workshop/manual/cases/cfn-static-site/input/template.yaml` | YAML・教材からコピー |
+| 2 | `workshop/manual/cases/cfn-missing-usage/case-public.json` | JSON・本文から作成 |
+| 2 | `workshop/manual/cases/cfn-missing-usage/oracle.json` | JSON・評価側だけに保存 |
+| 2 | `workshop/manual/cases/cfn-missing-usage/input/template.yaml` | YAML・教材からコピー |
+| [3. プロンプト](../../03-dataset-design/) | `workshop/manual/prompts/agent-v1.md` | Markdown・本文から作成 |
+| 3 | `workshop/manual/schemas/agent-output.schema.json` | JSON Schema・教材からコピー |
+| [4. MCP（任意）](../../04-agent-profile/) | `workshop/manual/config/pricing-policy.json` | JSON・管理者確認用。保存だけでは適用されない |
+| 4 | `workshop/manual/scripts/prepare_mcp.py` | Python・本文から作成して実行 |
+| 4 | `workshop/manual/experiment-pricing-mcp.json` | JSON・スクリプトで複製・更新 |
+| 4 | `workshop/manual/config/pricing-mcp.json` | JSON・スクリプトで生成 |
+| [5. 採点](../../05-repeated-experiment/) | `workshop/manual/scripts/check_result.py` | Python・本文から作成 |
+| 5 | `workshop/manual/scripts/extract_claude.py` | Python・Claude利用時に作成 |
+| [6. 集計](../../06-llm-judge/) | `workshop/manual/scripts/summarize.py` | Python・本文から作成 |
+| [7. Judge](../../07-live-pilot/) | `workshop/manual/prompts/judge-v1.md` | Markdown・本文から作成 |
+| 7 | `workshop/manual/schemas/judge-output.schema.json` | JSON Schema・教材からコピー |
+| 7 | `workshop/manual/scripts/prepare_judge.py` | Python・本文から作成して入力を自動生成 |
+| 7 | `workshop/manual/scripts/aggregate_judge.py` | Python・本文から作成 |
+| [8. レポート](../../08-capstone/) | `workshop/manual/report.md` | Markdown・テンプレートから作成して実測値を記入 |
+
+`answer.json`、`verdict.json`、`summary.json`、`judgment.json`は実行結果です。空ファイルを手作業で作ったり、JSON例をYAMLに改名したりする必要はありません。
+
 ## 直接実行の最小形
 
+<Command title="ターミナルで実行" prompt="BASH">
+
 ```bash
-codex exec --ephemeral --sandbox read-only \
+pricing_disable=()
+if codex mcp get aws-pricing > /dev/null 2>&1; then
+  pricing_disable=(-c mcp_servers.aws-pricing.enabled=false)
+fi
+(
+  cd workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
+  codex exec --ephemeral --sandbox read-only \
+  "${pricing_disable[@]}" \
   --output-schema agent-output.schema.json \
   --output-last-message answer.json \
   - < TASK.md
+)
 ```
+
+</Command>
 
 この1回を新しいworkspaceで繰り返し、外側のPython checkerへ`answer.json`と`oracle.json`を渡します。専用評価CLIは使いません。
 

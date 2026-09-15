@@ -4,6 +4,9 @@ description: Agent CLIを直接1回実行し、自分で書いた決定的チェ
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/scripts/check_result.py?raw';
+import extractClaude from '../../snippets/scripts/extract_claude.py?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -18,15 +21,26 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 1. ### Agent CLIを直接呼ぶ
 
+   Claude Codeを選ぶ場合だけ、次の補助スクリプトを先に作成します。[公式仕様](https://code.claude.com/docs/en/headless#get-structured-output)ではJSON結果の`structured_output`に回答が入るため、これを`answer.json`へ取り出します。
+
+   <FileCreate path="workshop/manual/scripts/extract_claude.py" lang="python" code={extractClaude} />
+
+   第4章でMCPを登録済みでも、ここでは無効にします。Codexは`aws-pricing`を無効化します。他の登録済みMCPがないことも`codex mcp list`で確認してください。Claude Codeは空の明示設定だけを読み込みます。
+
    <Tabs>
      <TabItem label="Codex">
        <Command title="trial-01を実行" prompt="READ ONLY">
 
        ```bash
+       pricing_disable=()
+       if codex mcp get aws-pricing > /dev/null 2>&1; then
+         pricing_disable=(-c mcp_servers.aws-pricing.enabled=false)
+       fi
        trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
        (
          cd "$trial"
          codex exec --ephemeral --sandbox read-only \
+           "${pricing_disable[@]}" \
            --output-schema agent-output.schema.json \
            --output-last-message answer.json \
            - < TASK.md
@@ -44,18 +58,20 @@ import Checkpoint from '../../components/Checkpoint.astro';
        trial=workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01
        (
          cd "$trial"
-         claude -p --max-turns 24 \
+         claude -p --max-turns 24 --output-format json \
+           --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
            --no-session-persistence \
            --permission-mode dontAsk \
            --tools "Read,Glob,Grep" \
            --json-schema "$(cat agent-output.schema.json)" \
-           "$(cat TASK.md)" > answer.json
-       )
+           "$(cat TASK.md)" > claude-result.json
+       ) && python workshop/manual/scripts/extract_claude.py \
+         "$trial/claude-result.json" "$trial/answer.json"
        ```
 
        </Command>
 
-       `--no-session-persistence`で会話を保存せず、`--tools`で読み取り系toolだけを公開します。`dontAsk`により未許可toolは対話待ちにせず拒否し、`--json-schema`で最終JSONを検証して`answer.json`へ保存します。
+       `--no-session-persistence`で会話を保存せず、`--tools`で読み取り系toolだけを公開します。`dontAsk`により未許可toolは対話待ちにせず拒否し、`--output-format json`と`--json-schema`で構造化結果を取得します。生の結果は`claude-result.json`、取り出した回答は`answer.json`です。
      </TabItem>
    </Tabs>
 
@@ -74,59 +90,9 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 3. ### 決定的チェッカーを自分で作る
 
-   `workshop/manual/scripts/check_result.py`を作ります。判定内容が読める短いコードにします。
+   `workshop/manual/scripts/check_result.py`を作ります。第0章で入れた`jsonschema`で型・必須項目も検証します。AWS操作やファイル変更の有無は、この回答チェッカーだけでは証明できないため実行ログと権限を別途確認します。
 
-   ```python
-   import json
-   import sys
-   from pathlib import Path
-
-   result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-   oracle = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-   errors: list[str] = []
-
-   if result.get("status") != oracle["expected_status"]:
-       errors.append("status mismatch")
-
-   required_services = set(oracle.get("required_services", []))
-   actual_services = {
-       item.get("service") for item in result.get("service_estimates", [])
-   }
-   if not required_services <= actual_services:
-       errors.append("required service missing")
-
-   required_missing = set(oracle.get("required_missing_input_ids", []))
-   actual_missing = {item.get("id") for item in result.get("missing_inputs", [])}
-   if not required_missing <= actual_missing:
-       errors.append("required clarification missing")
-
-   expected_total = oracle.get("monthly_total_usd")
-   if expected_total:
-       total = result.get("monthly_total_usd")
-       if not isinstance(total, (int, float)):
-           errors.append("monthly total missing")
-       elif not expected_total["minimum"] <= total <= expected_total["maximum"]:
-           errors.append("monthly total outside oracle range")
-
-       subtotal = sum(
-           item.get("monthly_cost_usd", 0)
-           for item in result.get("service_estimates", [])
-       )
-       if isinstance(total, (int, float)) and abs(total - subtotal) > 0.02:
-           errors.append("service subtotal mismatch")
-
-   required_urls = set(oracle.get("required_source_urls", []))
-   actual_urls = {
-       source.get("url")
-       for item in result.get("service_estimates", [])
-       for source in item.get("sources", [])
-   }
-   if not required_urls <= actual_urls:
-       errors.append("required source missing")
-
-   print(json.dumps({"passed": not errors, "errors": errors}, ensure_ascii=False))
-   raise SystemExit(1 if errors else 0)
-   ```
+   <FileCreate path="workshop/manual/scripts/check_result.py" lang="python" code={fileContent1} />
 
 4. ### oracleを外側から渡して採点する
 
@@ -135,44 +101,78 @@ import Checkpoint from '../../components/Checkpoint.astro';
    ```bash
    python workshop/manual/scripts/check_result.py \
      workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01/answer.json \
-     workshop/manual/cases/cfn-missing-usage/oracle.json
+     workshop/manual/cases/cfn-missing-usage/oracle.json \
+     > workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01/verdict.json
+   cat workshop/manual/runs/no-mcp/cfn-missing-usage/trial-01/verdict.json
    ```
 
    </Command>
 
-   Agent workspaceからはoracleを読めませんが、採点processは明示的に2ファイルを受け取ります。
+   oracleはAgent workspaceへ配置せず、採点processだけへ明示的に渡します。ディレクトリを分けるだけではOSの読み取り制限にはなりません。厳密なholdoutでは公開入力だけをマウントした隔離環境を使います。
 
 5. ### MCPありケースを1回pilotする
 
    第4章を完了した場合だけ、`cfn-static-site`を別の実験条件で実行します。
 
-   <Command title="Pricing MCP pilotを準備・実行" prompt="PRICING MCP / READ ONLY">
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="Pricing MCP pilotを準備・実行" prompt="BASH">
 
-   ```bash
-   case_dir=workshop/manual/cases/cfn-static-site
-   trial=workshop/manual/runs/pricing-mcp/cfn-static-site/trial-01
-   mkdir -p "$trial/input"
-   cp "$case_dir/case-public.json" "$trial/case-public.json"
-   cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
-   cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
-   cp workshop/manual/schemas/agent-output.schema.json \
-     "$trial/agent-output.schema.json"
+       ```bash
+       case_dir=workshop/manual/cases/cfn-static-site
+       trial=workshop/manual/runs/pricing-mcp/cfn-static-site/trial-01
+       mkdir -p "$trial/input"
+       cp "$case_dir/case-public.json" "$trial/case-public.json"
+       cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+       cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+       cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+       (
+         cd "$trial"
+         codex exec --ephemeral --sandbox read-only --json \
+           -c mcp_servers.aws-pricing.enabled=true \
+           --output-schema agent-output.schema.json \
+           --output-last-message answer.json \
+           - < TASK.md > events.jsonl
+       )
+       python workshop/manual/scripts/check_result.py \
+         "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json"
+       cat "$trial/verdict.json"
+       ```
 
-   (
-     cd "$trial"
-     codex exec --ephemeral --sandbox read-only --json \
-       --output-schema agent-output.schema.json \
-       --output-last-message answer.json \
-       - < TASK.md > events.jsonl
-   )
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="Pricing MCP pilotを準備・実行" prompt="BASH">
 
-   python workshop/manual/scripts/check_result.py \
-     "$trial/answer.json" "$case_dir/oracle.json"
-   ```
+       ```bash
+       case_dir=workshop/manual/cases/cfn-static-site
+       trial=workshop/manual/runs/pricing-mcp/cfn-static-site/trial-01
+       mkdir -p "$trial/input"
+       cp "$case_dir/case-public.json" "$trial/case-public.json"
+       cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+       cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+       cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+       mcp_config="$(pwd)/workshop/manual/config/pricing-mcp.json"
+       (
+         cd "$trial"
+         claude -p --max-turns 24 --output-format json \
+           --no-session-persistence --permission-mode dontAsk \
+           --tools "Read,Glob,Grep" --allowedTools "mcp__aws-pricing__*" \
+           --strict-mcp-config --mcp-config "$mcp_config" \
+           --json-schema "$(cat agent-output.schema.json)" \
+           "$(cat TASK.md)" > claude-result.json
+       ) && python workshop/manual/scripts/extract_claude.py \
+         "$trial/claude-result.json" "$trial/answer.json"
+       python workshop/manual/scripts/check_result.py \
+         "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json"
+       cat "$trial/verdict.json"
+       ```
 
-   </Command>
+       </Command>
+     </TabItem>
+   </Tabs>
 
-   Claude Codeの場合は最初のAgent呼び出しと同じ安全flagを使い、Pricing MCPのtoolだけを`--allowedTools "mcp__aws-pricing__*"`で追加許可します。MCP tool call、根拠URL、単価、式、出力先外への書き込みがないことを確認してから反復へ進みます。
+   MCP tool call、根拠URL、単価、式を確認してから反復へ進みます。既に実行済みのpilotを再実行せず、回答ファイルとログを保持してください。
 
 </Steps>
 

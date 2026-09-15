@@ -1,0 +1,8 @@
+{
+  "id": "cfn-missing-usage",
+  "task": "防御可能な月額を算出できるか判断し、不足情報は推測せず質問する",
+  "region": "us-east-1",
+  "currency": "USD",
+  "input_files": ["input/template.yaml"],
+  "usage_profile": {}
+}

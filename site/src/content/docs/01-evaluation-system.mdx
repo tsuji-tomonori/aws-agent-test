@@ -4,6 +4,8 @@ description: Agentを動かす前に、評価対象、失敗条件、コード�
 ---
 
 import { Steps, Aside, Card, CardGrid } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/experiment.json?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import ExpectedResult from '../../components/ExpectedResult.astro';
@@ -34,21 +36,9 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 2. ### 実験条件を凍結する
 
-   `workshop/manual/experiment.json`を作ります。値は自分の環境へ合わせてください。
+   `workshop/manual/experiment.json`を作ります。作成後「本文・Vimで作成」の手順で開き、`agent_cli`を`codex`または`claude`、`agent_cli_version`を第0章のバージョン、`model`を実際に使用するモデル名へ変更して保存してください。`記録する`のまま実行しないでください。
 
-   ```json
-   {
-     "experiment_id": "cost-estimation-prompt-v1",
-     "agent_cli": "codex",
-     "agent_cli_version": "記録する",
-     "model": "記録する",
-     "prompt_version": "agent-v1",
-     "tool_mode": "no-mcp",
-     "permission_mode": "read-only",
-     "case_set": ["cfn-missing-usage", "cfn-static-site"],
-     "repetitions": 5
-   }
-   ```
+   <FileCreate path="workshop/manual/experiment.json" lang="json" code={fileContent1} />
 
    prompt、model、MCP、権限のどれかを変更したら、新しい`experiment_id`にします。
 

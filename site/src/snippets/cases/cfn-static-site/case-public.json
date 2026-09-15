@@ -1,0 +1,20 @@
+{
+  "id": "cfn-static-site",
+  "task": "CloudFormationを読み、Free Tierを使わない月額を見積もる",
+  "region": "us-east-1",
+  "currency": "USD",
+  "input_files": ["input/template.yaml"],
+  "usage_profile": {
+    "s3_standard_storage_gb_month": 100,
+    "s3_put_requests": 100000,
+    "s3_get_requests": 5000000,
+    "cloudfront_data_transfer_out_gb_us_canada_mexico": 2048,
+    "cloudfront_https_requests": 20000000
+  },
+  "pricing_basis": {
+    "purchase_option": "public on-demand rates",
+    "free_tier": false,
+    "discounts": false,
+    "tax": false
+  }
+}

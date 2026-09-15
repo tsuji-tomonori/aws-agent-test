@@ -1,0 +1,9 @@
+{
+  "expected_status": "completed",
+  "required_services": ["Amazon S3", "Amazon CloudFront"],
+  "monthly_total_usd": {"minimum": 196.83, "maximum": 200.93},
+  "required_source_urls": [
+    "https://aws.amazon.com/s3/pricing/",
+    "https://aws.amazon.com/cloudfront/pricing/"
+  ]
+}

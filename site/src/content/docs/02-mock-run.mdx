@@ -4,6 +4,11 @@ description: Agentへ見せる問題と、評価側だけが持つoracleを分�
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/cases/cfn-static-site/case-public.json?raw';
+import fileContent2 from '../../snippets/cases/cfn-static-site/oracle.json?raw';
+import fileContent3 from '../../snippets/cases/cfn-missing-usage/case-public.json?raw';
+import fileContent4 from '../../snippets/cases/cfn-missing-usage/oracle.json?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -33,34 +38,17 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    先にケース用ディレクトリを作ります。
 
+   <Command title="ターミナルで実行" prompt="BASH">
+
    ```bash
    mkdir -p workshop/manual/cases/cfn-static-site/input
    ```
 
+   </Command>
+
    `workshop/manual/cases/cfn-static-site/case-public.json`を作ります。
 
-   ```json
-   {
-     "id": "cfn-static-site",
-     "task": "CloudFormationを読み、Free Tierを使わない月額を見積もる",
-     "region": "us-east-1",
-     "currency": "USD",
-     "input_files": ["input/template.yaml"],
-     "usage_profile": {
-       "s3_standard_storage_gb_month": 100,
-       "s3_put_requests": 100000,
-       "s3_get_requests": 5000000,
-       "cloudfront_data_transfer_out_gb_us_canada_mexico": 2048,
-       "cloudfront_https_requests": 20000000
-     },
-     "pricing_basis": {
-       "purchase_option": "public on-demand rates",
-       "free_tier": false,
-       "discounts": false,
-       "tax": false
-     }
-   }
-   ```
+   <FileCreate path="workshop/manual/cases/cfn-static-site/case-public.json" lang="json" code={fileContent1} />
 
    教材のCloudFormationを公開入力としてコピーします。
 
@@ -76,19 +64,9 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 3. ### 評価側だけのoracleを作る
 
-   同じケースの`oracle.json`を作ります。このファイルはtrial workspaceへコピーしません。
+   `workshop/manual/cases/cfn-static-site/oracle.json`を作ります。このファイルはtrial workspaceへコピーしません。
 
-   ```json
-   {
-     "expected_status": "completed",
-     "required_services": ["Amazon S3", "Amazon CloudFront"],
-     "monthly_total_usd": {"minimum": 196.83, "maximum": 200.93},
-     "required_source_urls": [
-       "https://aws.amazon.com/s3/pricing/",
-       "https://aws.amazon.com/cloudfront/pricing/"
-     ]
-   }
-   ```
+   <FileCreate path="workshop/manual/cases/cfn-static-site/oracle.json" lang="json" code={fileContent2} />
 
    許容範囲は「Agentに合わせて後から広げる」のではなく、一次情報から人が再計算して実行前に固定します。
 
@@ -96,32 +74,13 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    <Tabs>
      <TabItem label="公開入力">
-       `cfn-missing-usage`ではusageを空にします。課金対象はIaCから分かりますが、リクエスト数や実行時間がないため月額は確定できません。
+       `workshop/manual/cases/cfn-missing-usage/case-public.json`を作ります。usageを空にします。課金対象はIaCから分かりますが、リクエスト数や実行時間がないため月額は確定できません。**このタブと隣の「非公開oracle」の両方を作成してください。**
 
-       ```json
-       {
-         "id": "cfn-missing-usage",
-         "task": "防御可能な月額を算出できるか判断し、不足情報は推測せず質問する",
-         "region": "us-east-1",
-         "currency": "USD",
-         "input_files": ["input/template.yaml"],
-         "usage_profile": {}
-       }
-       ```
+       <FileCreate path="workshop/manual/cases/cfn-missing-usage/case-public.json" lang="json" code={fileContent3} />
      </TabItem>
      <TabItem label="非公開oracle">
-       ```json
-       {
-         "expected_status": "needs_clarification",
-         "required_missing_input_ids": [
-           "monthly_api_requests",
-           "monthly_lambda_requests",
-           "lambda_average_duration_ms",
-           "monthly_dynamodb_write_request_units",
-           "monthly_dynamodb_read_request_units"
-         ]
-       }
-       ```
+       `workshop/manual/cases/cfn-missing-usage/oracle.json`を作ります。
+       <FileCreate path="workshop/manual/cases/cfn-missing-usage/oracle.json" lang="json" code={fileContent4} />
      </TabItem>
    </Tabs>
 
@@ -136,6 +95,8 @@ import Checkpoint from '../../components/Checkpoint.astro';
    ```
 
    </Command>
+
+   **JSONとYAMLは別ファイルです。** `case-public.json`内の`input_files`は、ケースのディレクトリを基準にした相対パスです。`input/template.yaml`には上の`cp`でコピーしたCloudFormation YAMLが入り、ケース情報のJSONは入りません。
 
 5. ### ケース表で偏りを確認する
 
