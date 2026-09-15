@@ -3,7 +3,9 @@ title: 6. 独立試行を繰り返す
 description: 同じケースを新しい会話・workspaceで5回実行し、一度の成功と安定性を区別します。
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/scripts/summarize.py?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -22,87 +24,113 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 2. ### 5個の独立workspaceを作って実行する
 
-   Codexの例です。各trialで入力だけをコピーし、oracleはケース側に残します。
+   使用するCLIのタブを一つ選びます。第5章のpilotとは別の`no-mcp-batch-01`へ保存するため、pilotを上書きしません。
 
-   <Command title="5回の独立trialを実行" prompt="5 FRESH SESSIONS">
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="5回の独立trialを実行" prompt="BASH">
 
-   ```bash
-   case_id=cfn-missing-usage
-   case_dir="workshop/manual/cases/$case_id"
-   run_dir="workshop/manual/runs/no-mcp/$case_id"
+       ```bash
+       pricing_disable=()
+       if codex mcp get aws-pricing > /dev/null 2>&1; then
+         pricing_disable=(-c mcp_servers.aws-pricing.enabled=false)
+       fi
+       case_id=cfn-missing-usage
+       case_dir="workshop/manual/cases/$case_id"
+       run_dir="workshop/manual/runs/no-mcp-batch-01/$case_id"
+       # 同名runの上書きを防ぐ。再測定時は新しいrun名にする。
+       if test -e "$run_dir"; then
+         printf '%s\n' "既存runです: $run_dir"
+       else
+         mkdir -p "$run_dir"
+         cp workshop/manual/experiment.json "$run_dir/experiment.json"
+         for number in 01 02 03 04 05; do
+           trial="$run_dir/trial-$number"
+           mkdir -p "$trial/input"
+           cp "$case_dir/case-public.json" "$trial/case-public.json"
+           cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+           cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+           cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+           (
+             cd "$trial"
+             codex exec --ephemeral --sandbox read-only --json \
+               "${pricing_disable[@]}" \
+               --output-schema agent-output.schema.json \
+               --output-last-message answer.json \
+               - < TASK.md > events.jsonl
+           )
+           agent_exit=$?
+           printf '%s\n' "$agent_exit" > "$trial/exit-code.txt"
+           if test "$agent_exit" -eq 0 && test -s "$trial/answer.json"; then
+             python workshop/manual/scripts/check_result.py \
+               "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json" || true
+           else
+             printf '%s\n' '{"passed": false, "errors": ["agent execution failed"]}' > "$trial/verdict.json"
+           fi
+         done
+       fi
+       ```
 
-   for number in 01 02 03 04 05; do
-     trial="$run_dir/trial-$number"
-     mkdir -p "$trial/input"
-     cp "$case_dir/case-public.json" "$trial/case-public.json"
-     cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
-     cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
-     cp workshop/manual/schemas/agent-output.schema.json \
-       "$trial/agent-output.schema.json"
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="5回の独立trialを実行" prompt="BASH">
 
-     (
-       cd "$trial"
-       codex exec --ephemeral --sandbox read-only --json \
-         --output-schema agent-output.schema.json \
-         --output-last-message answer.json \
-         - < TASK.md > events.jsonl
-       echo "$?" > exit-code.txt
-     )
+       ```bash
+       case_id=cfn-missing-usage
+       case_dir="workshop/manual/cases/$case_id"
+       run_dir="workshop/manual/runs/no-mcp-batch-01/$case_id"
+       # 同名runの上書きを防ぐ。再測定時は新しいrun名にする。
+       if test -e "$run_dir"; then
+         printf '%s\n' "既存runです: $run_dir"
+       else
+         mkdir -p "$run_dir"
+         cp workshop/manual/experiment.json "$run_dir/experiment.json"
+         for number in 01 02 03 04 05; do
+           trial="$run_dir/trial-$number"
+           mkdir -p "$trial/input"
+           cp "$case_dir/case-public.json" "$trial/case-public.json"
+           cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+           cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+           cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+           (
+             cd "$trial"
+             claude -p --max-turns 24 --output-format json \
+               --no-session-persistence --permission-mode dontAsk \
+               --tools "Read,Glob,Grep"  \
+               --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
+               --json-schema "$(cat agent-output.schema.json)" \
+               "$(cat TASK.md)" > claude-result.json
+           ) && python workshop/manual/scripts/extract_claude.py \
+             "$trial/claude-result.json" "$trial/answer.json"
+           agent_exit=$?
+           printf '%s\n' "$agent_exit" > "$trial/exit-code.txt"
+           if test "$agent_exit" -eq 0 && test -s "$trial/answer.json"; then
+             python workshop/manual/scripts/check_result.py \
+               "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json" || true
+           else
+             printf '%s\n' '{"passed": false, "errors": ["agent execution failed"]}' > "$trial/verdict.json"
+           fi
+         done
+       fi
+       ```
 
-     if test -s "$trial/answer.json"; then
-       python workshop/manual/scripts/check_result.py \
-         "$trial/answer.json" "$case_dir/oracle.json" \
-         > "$trial/verdict.json" || true
-     else
-       echo '{"passed": false, "errors": ["agent execution failed"]}' \
-         > "$trial/verdict.json"
-     fi
-   done
-   ```
-
-   </Command>
-
-   Claude Codeを使う場合は、ループ内のAgent呼び出しだけを第5章の`claude -p`へ置き換えます。`--no-session-persistence`、読み取りtool限定、`dontAsk`、JSON Schema検証を残し、sessionのresumeは使いません。
+       </Command>
+     </TabItem>
+   </Tabs>
 
 3. ### 成功率と信頼区間を計算する
 
    `workshop/manual/scripts/summarize.py`を作ります。
 
-   ```python
-   import json
-   import math
-   import sys
-   from pathlib import Path
-
-   verdicts = [
-       json.loads(path.read_text(encoding="utf-8"))
-       for path in sorted(Path(sys.argv[1]).glob("trial-*/verdict.json"))
-   ]
-   n = len(verdicts)
-   successes = sum(item["passed"] for item in verdicts)
-   p = successes / n
-   z = 1.96
-   denominator = 1 + z * z / n
-   center = (p + z * z / (2 * n)) / denominator
-   margin = z * math.sqrt((p * (1 - p) + z * z / (4 * n)) / n) / denominator
-
-   summary = {
-       "trials": n,
-       "successes": successes,
-       "success_rate": p,
-       "wilson_95ci": [max(0, center - margin), min(1, center + margin)],
-       "pass_at_k": successes > 0,
-       "pass_power_k": successes == n,
-   }
-   print(json.dumps(summary, indent=2))
-   ```
+   <FileCreate path="workshop/manual/scripts/summarize.py" lang="python" code={fileContent1} />
 
    <Command title="反復結果を集計">
 
    ```bash
    python workshop/manual/scripts/summarize.py \
-     workshop/manual/runs/no-mcp/cfn-missing-usage \
-     > workshop/manual/runs/no-mcp/cfn-missing-usage/summary.json
+     workshop/manual/runs/no-mcp-batch-01/cfn-missing-usage \
+     > workshop/manual/runs/no-mcp-batch-01/cfn-missing-usage/summary.json
    ```
 
    </Command>
@@ -128,9 +156,107 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 6. ### MCPありケースも同じ回数で測る
 
-   第4章を実施した場合は、上のloopの`case_id`を`cfn-static-site`、`run_dir`を`workshop/manual/runs/pricing-mcp/cfn-static-site`へ変えて5回実行します。pilotの`trial-01`を本測定へ流用せず、新しいrun IDで5回をそろえます。
+   第4章を実施した場合だけ、以下のCLIタブを一つ選んで実行します。保存先は`pricing-mcp-batch-01`です。
 
-   MCP package、AWS profile、tool一覧、prompt、modelのどれかが途中で変わったtrialは同じ集計へ含めません。
+   <Tabs>
+     <TabItem label="Codex">
+       <Command title="MCPありの5回反復" prompt="BASH">
+
+       ```bash
+       case_id=cfn-static-site
+       case_dir="workshop/manual/cases/$case_id"
+       run_dir="workshop/manual/runs/pricing-mcp-batch-01/$case_id"
+       # 同名runの上書きを防ぐ。再測定時は新しいrun名にする。
+       if test -e "$run_dir"; then
+         printf '%s\n' "既存runです: $run_dir"
+       else
+         mkdir -p "$run_dir"
+         cp workshop/manual/experiment-pricing-mcp.json "$run_dir/experiment.json"
+         for number in 01 02 03 04 05; do
+           trial="$run_dir/trial-$number"
+           mkdir -p "$trial/input"
+           cp "$case_dir/case-public.json" "$trial/case-public.json"
+           cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+           cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+           cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+           (
+             cd "$trial"
+             codex exec --ephemeral --sandbox read-only --json \
+               -c mcp_servers.aws-pricing.enabled=true \
+               --output-schema agent-output.schema.json \
+               --output-last-message answer.json \
+               - < TASK.md > events.jsonl
+           )
+           agent_exit=$?
+           printf '%s\n' "$agent_exit" > "$trial/exit-code.txt"
+           if test "$agent_exit" -eq 0 && test -s "$trial/answer.json"; then
+             python workshop/manual/scripts/check_result.py \
+               "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json" || true
+           else
+             printf '%s\n' '{"passed": false, "errors": ["agent execution failed"]}' > "$trial/verdict.json"
+           fi
+         done
+       fi
+       ```
+
+       </Command>
+     </TabItem>
+     <TabItem label="Claude Code">
+       <Command title="MCPありの5回反復" prompt="BASH">
+
+       ```bash
+       case_id=cfn-static-site
+       case_dir="workshop/manual/cases/$case_id"
+       run_dir="workshop/manual/runs/pricing-mcp-batch-01/$case_id"
+       # 同名runの上書きを防ぐ。再測定時は新しいrun名にする。
+       if test -e "$run_dir"; then
+         printf '%s\n' "既存runです: $run_dir"
+       else
+         mkdir -p "$run_dir"
+         cp workshop/manual/experiment-pricing-mcp.json "$run_dir/experiment.json"
+         for number in 01 02 03 04 05; do
+           trial="$run_dir/trial-$number"
+           mkdir -p "$trial/input"
+           cp "$case_dir/case-public.json" "$trial/case-public.json"
+           cp "$case_dir/input/template.yaml" "$trial/input/template.yaml"
+           cp workshop/manual/prompts/agent-v1.md "$trial/TASK.md"
+           cp workshop/manual/schemas/agent-output.schema.json "$trial/agent-output.schema.json"
+           mcp_config="$(pwd)/workshop/manual/config/pricing-mcp.json"
+           (
+             cd "$trial"
+             claude -p --max-turns 24 --output-format json \
+               --no-session-persistence --permission-mode dontAsk \
+               --tools "Read,Glob,Grep" --allowedTools "mcp__aws-pricing__*" \
+               --strict-mcp-config --mcp-config "$mcp_config" \
+               --json-schema "$(cat agent-output.schema.json)" \
+               "$(cat TASK.md)" > claude-result.json
+           ) && python workshop/manual/scripts/extract_claude.py \
+             "$trial/claude-result.json" "$trial/answer.json"
+           agent_exit=$?
+           printf '%s\n' "$agent_exit" > "$trial/exit-code.txt"
+           if test "$agent_exit" -eq 0 && test -s "$trial/answer.json"; then
+             python workshop/manual/scripts/check_result.py \
+               "$trial/answer.json" "$case_dir/oracle.json" > "$trial/verdict.json" || true
+           else
+             printf '%s\n' '{"passed": false, "errors": ["agent execution failed"]}' > "$trial/verdict.json"
+           fi
+         done
+       fi
+       ```
+
+       </Command>
+     </TabItem>
+   </Tabs>
+
+   <Command title="MCPあり結果を集計" prompt="BASH">
+
+   ```bash
+   python workshop/manual/scripts/summarize.py \
+     workshop/manual/runs/pricing-mcp-batch-01/cfn-static-site \
+     > workshop/manual/runs/pricing-mcp-batch-01/cfn-static-site/summary.json
+   ```
+
+   </Command>
 
 </Steps>
 

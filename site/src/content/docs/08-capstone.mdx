@@ -3,6 +3,9 @@ title: 8. 比較実験を完成させる
 description: ケース、prompt、MCP、反復、Gate、Judgeを一つの再現可能な比較実験へまとめます。
 ---
 
+import Command from '../../components/Command.astro';
+import FileCreate from '../../components/FileCreate.astro';
+import reportTemplate from '../../snippets/report.md?raw';
 import { Steps, Aside } from '@astrojs/starlight/components';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
@@ -12,6 +15,8 @@ import Checkpoint from '../../components/Checkpoint.astro';
 <TaskMeta time="20分" level="中級" credentials="選択した実験条件による" cost="計画したtrial・Judge分" />
 
 最後に「何となくMCPありの方が良かった」ではなく、変更点を一つに絞って比較できる実験計画へまとめます。
+
+第6章の2つの実行例は、MCPなしでは情報不足ケース、MCPありではstatic-siteを使っています。**ケースも異なるため、この2つの成功率だけでMCPの優劣は比較できません。** この章ではまず実施済みの結果をレポートへ保存し、同じケースを両条件で測る比較計画を記録します。
 
 <Steps>
 
@@ -45,10 +50,14 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 3. ### 証跡の構成を揃える
 
+   <Command title="構成・表示例（実行しません）" prompt="TEXT">
+
    ```text
-   runs/<experiment-id>/
+   workshop/manual/
    ├── experiment.json
-   ├── cases/<case-id>/
+   ├── experiment-pricing-mcp.json  # 第4章を実施した場合
+   ├── runs/no-mcp-batch-01/cfn-missing-usage/
+   │   ├── experiment.json
    │   ├── trial-01/
    │   │   ├── TASK.md
    │   │   ├── answer.json
@@ -56,16 +65,32 @@ import Checkpoint from '../../components/Checkpoint.astro';
    │   │   ├── exit-code.txt
    │   │   └── verdict.json
    │   └── summary.json
-   ├── judge/<anonymous-item-id>/
+   ├── runs/pricing-mcp-batch-01/cfn-static-site/  # MCPあり反復
+   ├── runs/judge-batch-01/<anonymous-item-id>/
    │   ├── repeat-1/judgment.json
    │   ├── repeat-2/judgment.json
    │   └── repeat-3/judgment.json
    └── report.md
    ```
 
+   </Command>
+
    Agent認証、AWS資格情報、秘密を含むtranscript、MCPの一時ファイルは成果物へ含めません。
 
 4. ### レポートに判断を書き残す
+
+   次のテンプレートを`workshop/manual/report.md`へ保存します。「本文・Vimで作成」の方法で開き、`未記入`を実測値へ置き換えます。JSON集計は表示して読み、Markdownレポートへ結果を記入します。
+
+   <FileCreate path="workshop/manual/report.md" lang="markdown" code={reportTemplate} />
+
+   <Command title="レポートへ転記する集計を表示" prompt="BASH">
+
+   ```bash
+   python -m json.tool workshop/manual/runs/no-mcp-batch-01/cfn-missing-usage/summary.json
+   git rev-parse HEAD
+   ```
+
+   </Command>
 
    条件ごとに次を記載します。
 

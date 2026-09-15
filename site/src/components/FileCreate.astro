@@ -1,0 +1,55 @@
+---
+import { Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import Command from './Command.astro';
+
+interface Props {
+  path: string;
+  lang: 'json' | 'yaml' | 'python' | 'markdown' | 'bash';
+  code: string;
+}
+const { path, lang, code } = Astro.props;
+// Restrict authored paths so the displayed shell command cannot interpolate shell syntax.
+if (!/^workshop\/manual\/[a-zA-Z0-9_./-]+$/.test(path) || path.split('/').includes('..')) {
+  throw new Error(`Invalid workshop file path: ${path}`);
+}
+const body = code.trimEnd() + '\n';
+const directory = path.slice(0, path.lastIndexOf('/'));
+let delimiter = 'WORKSHOP_FILE';
+while (body.split('\n').includes(delimiter)) delimiter += '_END';
+const check = lang === 'json'
+  ? `python -m json.tool '${path}' > /dev/null`
+  : lang === 'python'
+    ? `python -m py_compile '${path}'`
+    : `test -s '${path}'`;
+const command = `mkdir -p '${directory}'\ncat > '${path}' <<'${delimiter}'\n${body}${delimiter}\n${check} && printf '%s\\n' '作成OK: ${path}'`;
+---
+
+<section class="file-create" data-file-path={path}>
+  <p><strong>保存先：</strong><code>{path}</code><br /><strong>形式：</strong>{lang.toUpperCase()} ／ <strong>実行場所：</strong>リポジトリ直下 <code>aws-agent-test/</code></p>
+  <Tabs>
+    <TabItem label="コマンドで作成">
+      <p>右上のコピーボタンで<strong>ブロック全体</strong>をコピーし、Bashに貼り付けてEnterを押します。親ディレクトリも作成します。同名ファイルがある場合は本文を上書きします。</p>
+      <Command title={`作成: ${path}`} prompt="BASH">
+        <Code code={command} lang="bash" />
+      </Command>
+    </TabItem>
+    <TabItem label="本文・Vimで作成">
+      <p>こちらの方法を選ぶ場合は、次のコマンドでファイルを開きます。</p>
+      <Command title={`開く: ${path}`} prompt="BASH">
+        <Code code={`mkdir -p '${directory}'\nvim '${path}'`} lang="bash" />
+      </Command>
+      <ol>
+        <li>既存の内容を置き換える場合は <kbd>Esc</kbd> → <code>ggdG</code> で全行を削除します。</li>
+        <li><code>:set paste</code> → <kbd>Enter</kbd> → <kbd>i</kbd> で挿入モードにします。</li>
+        <li>下の<strong>本文だけ</strong>をコピーし、ターミナルの貼り付け操作（WSLでは通常 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>）で貼り付けます。</li>
+        <li><kbd>Esc</kbd> → <code>:set nopaste</code> → <kbd>Enter</kbd> → <code>:wq</code> → <kbd>Enter</kbd> で保存して終了します。</li>
+      </ol>
+      <Command title={path} prompt={lang.toUpperCase()}>
+        <Code code={body.trimEnd()} lang={lang} />
+      </Command>
+      <Command title="保存を確認" prompt="BASH">
+        <Code code={`${check} && printf '%s\\n' '確認OK: ${path}'`} lang="bash" />
+      </Command>
+    </TabItem>
+  </Tabs>
+</section>

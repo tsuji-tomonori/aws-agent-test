@@ -15,8 +15,25 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 このWorkshopでは、リポジトリ付属の専用評価コマンドを使いません。受講者自身がケース、プロンプト、実行workspace、判定コードを作り、CodexまたはClaude Codeを直接呼び出します。
 
+## コピペのルール
+
+- **WindowsではWSL UbuntuのBash**を使います。以下のコマンドはPowerShell・コマンドプロンプト用ではありません。macOS/LinuxでもBashで実行します。
+- 第0章で`cd aws-agent-test`した後は、**全章ともリポジトリ直下**から実行します。括弧`(...)`内の`cd`は、そのブロックが終わると元に戻ります。
+- 「コマンドで作成」は右上のコピーで**全体を一度に**貼り付け、Enterを押します。`cat`と終端の`WORKSHOP_FILE`も含めます。`$`などのプロンプト記号は含めていません。
+- 「本文・Vimで作成」は代替手順です。**両方を実行する必要はありません**。Vimで開くコマンド、挿入モード、保存方法も各ファイルに表示します。
+- `作成OK: 保存先`が表示されたら次へ進みます。JSONは構文、Pythonは構文コンパイル、その他はファイルが空でないことを確認します。
+
+| 表示される形式 | 保存するもの | 使い方 |
+|---|---|---|
+| BASH | 通常はファイル保存しない | ターミナルへ貼り付けて実行 |
+| JSON / `.json` | ケース情報、oracle、Schema、実験条件 | 指定パスへJSON本文を保存 |
+| YAML / `.yaml` | CloudFormation入力 | 教材のYAMLを`cp`でコピー。ケースJSONをここへ貼らない |
+| MARKDOWN / `.md` | Agent/Judgeプロンプト、レポート | 指定パスへ本文を保存 |
+| PYTHON / `.py` | 採点・集計プログラム | 作成後に`python パス`で実行 |
+| TEXT | 構成例・表示例 | 参考表示。ターミナルに実行しない |
+
 <Aside type="note" title="必要なもの">
-  Git、Python 3.11以降、JSONを編集できるエディタ、Codex CLIまたはClaude Codeが必要です。MCP章では追加で`uv`とAWSの短期認証を使います。
+  Git、Python 3.11以降、Codex CLIまたはClaude Codeが必要です。Vimは編集方法として選ぶ場合だけ必要です。MCP章では追加で`uv`とAWSの短期認証を使います。
 </Aside>
 
 <Steps>
@@ -65,12 +82,19 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
    ```bash
    mkdir -p workshop/manual/{cases,prompts,schemas,runs,scripts}
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install 'jsonschema>=4.23,<5'
    python --version
    ```
 
    </Command>
 
+   新しいターミナルでは、クローンした`aws-agent-test/`へ移動し、`source .venv/bin/activate`を再実行します。Ubuntuでvenv作成に失敗した場合は、`sudo apt-get install python3-venv`でvenvを用意してからやり直します。
+
    この配下へ、以降の章で次の成果物を作ります。
+
+   <Command title="構成・表示例（実行しません）" prompt="TEXT">
 
    ```text
    workshop/manual/
@@ -80,6 +104,8 @@ import Checkpoint from '../../components/Checkpoint.astro';
    ├── runs/        # trialごとの入力・出力・判定
    └── scripts/     # 自分で内容を確認して作る短い採点コード
    ```
+
+   </Command>
 
 4. ### 認証境界を決める
 

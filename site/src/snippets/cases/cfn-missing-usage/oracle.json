@@ -1,0 +1,10 @@
+{
+  "expected_status": "needs_clarification",
+  "required_missing_input_ids": [
+    "monthly_api_requests",
+    "monthly_lambda_requests",
+    "lambda_average_duration_ms",
+    "monthly_dynamodb_write_request_units",
+    "monthly_dynamodb_read_request_units"
+  ]
+}

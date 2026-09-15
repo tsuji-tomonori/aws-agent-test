@@ -18,3 +18,4 @@ asset-cache/
 site/node_modules/
 site/dist/
 .astro/
+workshop/manual/

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "cost-estimation-prompt-v1",
+  "agent_cli": "codex",
+  "agent_cli_version": "記録する",
+  "model": "記録する",
+  "prompt_version": "agent-v1",
+  "tool_mode": "no-mcp",
+  "permission_mode": "read-only",
+  "case_set": ["cfn-missing-usage", "cfn-static-site"],
+  "repetitions": 5
+}

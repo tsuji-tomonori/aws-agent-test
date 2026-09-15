@@ -4,6 +4,9 @@ description: AWS Pricing MCPをAgent CLIへ接続し、MCPなし／ありを別�
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/config/pricing-policy.json?raw';
+import fileContent2 from '../../snippets/scripts/prepare_mcp.py?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -22,22 +25,19 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 1. ### IAM境界を確認する
 
-   評価専用roleまたはpermission setには、価格参照以外を含めません。
+   評価専用roleまたはpermission setには、価格参照以外を含めません。以下は**管理者へ渡すポリシー見本**をローカルに保存する手順です。保存だけではIAMへ適用されません。既に用意された価格参照専用の短期profileを使ってください。
 
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": "pricing:*",
-         "Resource": "*"
-       }
-     ]
-   }
+   <FileCreate path="workshop/manual/config/pricing-policy.json" lang="json" code={fileContent1} />
+
+   この教材ではprofile名を`agent-pricing-eval`に統一します。管理者が用意した同名のSSO profileで、次を実行します。profileが未設定なら先に管理者へ依頼してください。
+
+   <Command title="用意済みSSO profileへログイン" prompt="BASH">
+
+   ```bash
+   aws sso login --profile agent-pricing-eval
    ```
 
-   `AWS_PROFILE=agent-pricing-eval`のように用途が分かる名前を使い、SSOなどの短期認証を開始します。
+   </Command>
 
 2. ### MCP serverを登録する
 
@@ -100,19 +100,46 @@ import Checkpoint from '../../components/Checkpoint.astro';
 
 4. ### 実験条件を更新する
 
-   `experiment.json`を複製し、次だけ変更します。
+   元の`workshop/manual/experiment.json`を読み、全項目を保持したまま`workshop/manual/experiment-pricing-mcp.json`を生成します。同時にClaude Codeの明示設定`workshop/manual/config/pricing-mcp.json`も作ります。下のスクリプトを保存して実行してください。
 
-   ```json
-   {
-     "experiment_id": "cost-estimation-prompt-v1-pricing-mcp",
-     "tool_mode": "pricing-mcp",
-     "mcp_server": "awslabs.aws-pricing-mcp-server@latest",
-     "aws_permission": "pricing:* only",
-     "aws_profile": "agent-pricing-eval"
-   }
+   <FileCreate path="workshop/manual/scripts/prepare_mcp.py" lang="python" code={fileContent2} />
+
+   先に次のコマンドで表示されたバージョンを控えます。続くスクリプトの入力欄へ、その値を入力してください。
+
+   <Command title="使用するMCP packageの版を確認" prompt="BASH">
+
+   ```bash
+   uvx --from awslabs.aws-pricing-mcp-server@latest python -c \
+     "import importlib.metadata; print(importlib.metadata.version('awslabs.aws-pricing-mcp-server'))"
    ```
 
-   本測定では`@latest`のままにせず、解決したpackage versionと取得日を記録するか、確認済みversionへ固定します。
+   </Command>
+
+   <Command title="MCP実験条件を生成・確認" prompt="BASH">
+
+   ```bash
+   python workshop/manual/scripts/prepare_mcp.py
+   python -m json.tool workshop/manual/experiment-pricing-mcp.json
+   python -m json.tool workshop/manual/config/pricing-mcp.json
+   ```
+
+   </Command>
+
+   Codexを使う場合は登録も同じ版へ更新します。Claude Codeの実行例は、生成した`pricing-mcp.json`を絶対パスで指定して使います。
+
+   <Command title="Codexのみ：記録した版で登録を更新" prompt="BASH">
+
+   ```bash
+   mcp_package=$(python -c 'import json; print(json.load(open("workshop/manual/experiment-pricing-mcp.json"))["mcp_server"])')
+   codex mcp add aws-pricing \
+     --env AWS_PROFILE=agent-pricing-eval \
+     --env AWS_REGION=us-east-1 \
+     --env FASTMCP_LOG_LEVEL=ERROR \
+     --env AWS_PRICING_MCP_OUTPUT_DIR="$(pwd)/workshop/manual/runs/mcp-output" \
+     -- uvx "$mcp_package"
+   ```
+
+   </Command>
 
 </Steps>
 

@@ -4,6 +4,10 @@ description: 意味品質だけを評価するrubricを作り、匿名化・反�
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+import FileCreate from '../../components/FileCreate.astro';
+import fileContent1 from '../../snippets/prompts/judge-v1.md?raw';
+import fileContent2 from '../../snippets/scripts/prepare_judge.py?raw';
+import fileContent3 from '../../snippets/scripts/aggregate_judge.py?raw';
 import TaskMeta from '../../components/TaskMeta.astro';
 import ConsoleStep from '../../components/ConsoleStep.astro';
 import Command from '../../components/Command.astro';
@@ -20,23 +24,7 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
    `workshop/manual/prompts/judge-v1.md`を作ります。
 
-   ```markdown
-   # Semantic quality judge
-
-   AWSコスト見積もりの説明品質だけを評価する。
-   数値・Schema・必須サービスは別のコードで検査済みであり、ここでは再採点しない。
-   回答を作ったmodelやprofileを推測せず、長さを品質として評価しない。
-
-   次の4次元を1〜5で採点する。
-   1. assumption_clarity: 仮定が明示され、費用への影響と結び付いている
-   2. uncertainty_handling: 曖昧さを認識し、必要なら質問している
-   3. exclusion_clarity: 除外した費用と境界が理解できる
-   4. actionability: 第三者が再計算・反証・更新できる
-
-   全次元3以上かつcritical concernがない場合だけsemantic_pass=trueにする。
-   `judge-input.json`と`repeat.txt`を読み、item IDとrepeat番号を出力へ写す。
-   `judge-output.schema.json`に従うJSONだけを返す。
-   ```
+   <FileCreate path="workshop/manual/prompts/judge-v1.md" lang="markdown" code={fileContent1} />
 
 2. ### Judge出力のSchemaを用意する
 
@@ -53,22 +41,22 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
 3. ### 回答を匿名化する
 
-   Judge workspaceには、case ID、model名、Agent CLI、MCP有無、成功率を入れません。採点対象の回答とrubric versionだけを`judge-input.json`へ入れます。
+   次のスクリプトを保存します。第6章の決定的ゲート通過回答を**全件**集め、順序をシャッフルし、case IDとAgentメトリクスを取り除きます。元trialとの対応表`mapping.json`はJudge workspaceへコピーしません。回答本文にmodel名などが自発的に含まれていないかも確認してください。
 
-   ```json
-   {
-     "judge_item_id": "item-7f3a",
-     "rubric_version": "judge-v1",
-     "answer": {
-       "status": "completed",
-       "service_estimates": [],
-       "assumptions": [],
-       "excluded_costs": [],
-       "confidence": 0.0,
-       "summary": "ここへ対象回答を機械的にコピーする"
-     }
-   }
+   <FileCreate path="workshop/manual/scripts/prepare_judge.py" lang="python" code={fileContent2} />
+
+   <Command title="匿名Judge入力を全件生成" prompt="BASH">
+
+   ```bash
+   python workshop/manual/scripts/prepare_judge.py \
+     workshop/manual/runs/no-mcp-batch-01/cfn-missing-usage \
+     workshop/manual/runs/judge-batch-01
+   find workshop/manual/runs/judge-batch-01 -name judge-input.json -print
    ```
+
+   </Command>
+
+   生成先は`workshop/manual/runs/judge-batch-01/item-＜自動ID＞/judge-input.json`です。IDを手入力する必要はありません。合格回答が0件ならここで停止し、原因を調べて新しい実験を作ります。
 
    <Aside type="caution" title="選択バイアスを入れない">
      人が「良さそうな回答」だけをJudgeへ渡してはいけません。決定的ゲートを通った全回答を、元の順序を隠して一意なitem IDへ変換します。
@@ -83,11 +71,21 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
        <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
 
        ```bash
-       export JUDGE_MODEL="使用するmodel名"
-       item=workshop/manual/runs/judge/item-7f3a
-
+       pricing_disable=()
+       if codex mcp get aws-pricing > /dev/null 2>&1; then
+         pricing_disable=(-c mcp_servers.aws-pricing.enabled=false)
+       fi
+       read -r -p 'Judgeに使用するモデル名: ' JUDGE_MODEL
+       : "${JUDGE_MODEL:?モデル名を入力してください}"
+       printf '%s\n' "$JUDGE_MODEL" > workshop/manual/runs/judge-batch-01/judge-model.txt
+       for item in workshop/manual/runs/judge-batch-01/item-*; do
+       test -f "$item/judge-input.json" || continue
        for repeat in 1 2 3; do
          judgment="$item/repeat-$repeat"
+         if test -e "$judgment"; then
+           printf '%s\n' "既存判定を保持: $judgment"
+           continue
+         fi
          mkdir -p "$judgment"
          cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
          cp workshop/manual/schemas/judge-output.schema.json \
@@ -98,11 +96,13 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
          (
            cd "$judgment"
            codex exec --ephemeral --sandbox read-only \
+             "${pricing_disable[@]}" \
              --model "$JUDGE_MODEL" \
              --output-schema judge-output.schema.json \
              --output-last-message judgment.json \
              - < TASK.md
          )
+       done
        done
        ```
 
@@ -112,11 +112,17 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
        <Command title="Judgeを3回実行" prompt="3 FRESH JUDGMENTS">
 
        ```bash
-       export JUDGE_MODEL="使用するmodel名"
-       item=workshop/manual/runs/judge/item-7f3a
-
+       read -r -p 'Judgeに使用するモデル名: ' JUDGE_MODEL
+       : "${JUDGE_MODEL:?モデル名を入力してください}"
+       printf '%s\n' "$JUDGE_MODEL" > workshop/manual/runs/judge-batch-01/judge-model.txt
+       for item in workshop/manual/runs/judge-batch-01/item-*; do
+       test -f "$item/judge-input.json" || continue
        for repeat in 1 2 3; do
          judgment="$item/repeat-$repeat"
+         if test -e "$judgment"; then
+           printf '%s\n' "既存判定を保持: $judgment"
+           continue
+         fi
          mkdir -p "$judgment"
          cp workshop/manual/prompts/judge-v1.md "$judgment/TASK.md"
          cp workshop/manual/schemas/judge-output.schema.json \
@@ -126,13 +132,16 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
          (
            cd "$judgment"
-           claude -p --model "$JUDGE_MODEL" \
+           claude -p --model "$JUDGE_MODEL" --output-format json \
+             --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
              --no-session-persistence \
              --permission-mode dontAsk \
              --tools "Read,Glob,Grep" \
              --json-schema "$(cat judge-output.schema.json)" \
-             "$(cat TASK.md)" > judgment.json
-         )
+             "$(cat TASK.md)" > claude-result.json
+         ) && python workshop/manual/scripts/extract_claude.py \
+           "$judgment/claude-result.json" "$judgment/judgment.json"
+       done
        done
        ```
 
@@ -149,7 +158,7 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
    | 出力 | 集約方法 |
    |---|---|
    | 4つのscore | 各次元の中央値 |
-   | `semantic_pass` | 3回中2回以上の多数決 |
+   | `semantic_pass` | 全次元3以上の合格が3回中2回以上。critical concernがあれば不合格 |
    | `critical_concern` | 1回でもあれば保持 |
    | 総合合格 | `deterministic_pass AND semantic_pass` |
 
@@ -157,46 +166,20 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
    `workshop/manual/scripts/aggregate_judge.py`を作り、規則をコードへ固定します。
 
-   ```python
-   import json
-   import sys
-   from pathlib import Path
-   from statistics import median
-
-   items = [
-       json.loads(path.read_text(encoding="utf-8"))
-       for path in sorted(Path(sys.argv[1]).glob("repeat-*/judgment.json"))
-   ]
-   dimensions = [
-       "assumption_clarity",
-       "uncertainty_handling",
-       "exclusion_clarity",
-       "actionability",
-   ]
-   concerns = [item["critical_concern"] for item in items if item["critical_concern"]]
-   result = {
-       "repeats": len(items),
-       "median_scores": {
-           name: median(item["scores"][name] for item in items)
-           for name in dimensions
-       },
-       "semantic_pass": sum(item["semantic_pass"] for item in items) >= 2,
-       "critical_concerns": concerns,
-   }
-   print(json.dumps(result, ensure_ascii=False, indent=2))
-   ```
+   <FileCreate path="workshop/manual/scripts/aggregate_judge.py" lang="python" code={fileContent3} />
 
    <Command title="Judge結果を集約">
 
    ```bash
-   python workshop/manual/scripts/aggregate_judge.py \
-     workshop/manual/runs/judge/item-7f3a \
-     > workshop/manual/runs/judge/item-7f3a/summary.json
+   for item in workshop/manual/runs/judge-batch-01/item-*; do
+     test -f "$item/judge-input.json" || continue
+     python workshop/manual/scripts/aggregate_judge.py "$item" > "$item/summary.json"
+   done
    ```
 
    </Command>
 
-   集約後も3個の生`judgment.json`を残します。不一致が大きい回答はJudge不安定として別途レビューします。
+   各itemに`repeat-1/`〜`repeat-3/`と`summary.json`ができます。判定が3件揃わなければ集約はエラーになります。集約後も3個の生`judgment.json`を残します。不一致が大きい回答はJudge不安定として別途レビューします。
 
 6. ### Gold setで校正する
 
@@ -217,7 +200,7 @@ LLM Judgeは、数値の正誤を雰囲気で採点するためのものでは�
 
 <ExpectedResult>
 
-匿名化されたJudge入力、3回の生判定、固定した集約規則、gold set校正結果が残り、Judge自身の非決定性も監査できます。
+匿名化されたJudge入力、3回の生判定、固定した集約規則が残ります。gold setの作成と人間2名の合意は別途実施する発展課題です。未実施なら「未校正」と記録し、実施済みと扱わないでください。
 
 </ExpectedResult>
 

@@ -19,6 +19,13 @@ export default defineConfig({
         baseUrl: 'https://github.com/tsuji-tomonori/aws-agent-test/edit/main/site/',
       },
       customCss: ['./src/styles/custom.css'],
+      expressiveCode: {
+        frames: {
+          // Heredocs contain Markdown headings and script comments: copy them verbatim.
+          removeCommentsWhenCopyingTerminalFrames: false,
+          extractFileNameFromCode: false,
+        },
+      },
       sidebar: [
         { label: 'はじめに', items: [
           { label: 'Workshop Home', link: '/' },
